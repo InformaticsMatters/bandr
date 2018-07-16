@@ -1,0 +1,19 @@
+---
+
+# Backup Image Docker-Compose file.
+#
+# You can control some of the behaviour of the build
+# with a few environment variables: -
+#
+# - POSTGRESQL_BACKUP_V The backup image version tag
+#                       (default latest)
+
+version: '3.6'
+
+services:
+
+  postgresql-backup:
+    build:
+      context: .
+    image: "informaticsmatters/postgresql-backup:${POSTGRESQL_BACKUP_V:-latest}"
+    container_name: postgresql-backup

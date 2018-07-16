@@ -1,0 +1,19 @@
+---
+
+# Recovery Image Docker-Compose file.
+#
+# You can control some of the behaviour of the build
+# with a few environment variables: -
+#
+# - POSTGRESQL_RECOVERY_V The recovery image version tag
+#                         (default latest)
+
+version: '3.6'
+
+services:
+
+  postgresql-recovery:
+    build:
+      context: .
+    image: "informaticsmatters/postgresql-recovery:${POSTGRESQL_RECOVERY_V:-latest}"
+    container_name: postgresql-recovery

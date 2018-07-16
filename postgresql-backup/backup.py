@@ -93,7 +93,7 @@ There are four values for BACKUP_TYPE: -
 
 Alan Christie
 Informatics Matters
-June 2018
+July 2018
 """
 
 import glob
@@ -106,7 +106,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '2.0.6'
+__version__ = '2.0.7'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
@@ -127,6 +127,7 @@ BACKUP_PRIOR_COUNT = int(os.environ.get('BACKUP_PRIOR_COUNT', '24'))
 # Extract configuration from the environment.
 PGHOST = os.environ.get('PGHOST', 'postgres')
 PGUSER = os.environ.get('PGUSER', 'postgres')
+PGPASSFILE = os.environ.get('PGPASSFILE', '.pgpass')
 
 # The backup config.
 # The root dir, below which you're likely to find
@@ -139,7 +140,7 @@ BACKUP_PRIOR_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_PRIOR_TYPE)
 BACKUP_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_TYPE)
 
 BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
-BACKUP_CMD = 'pg_dumpall --clean | gzip > %s' % BACKUP
+BACKUP_CMD = 'pg_dumpall --no-password --clean | gzip > %s' % BACKUP
 
 # Echo configuration...
 print('# BACKUP_TYPE = %s' % BACKUP_TYPE)
@@ -151,6 +152,7 @@ if BACKUP_TYPE not in [B_HOURLY]:
 if BACKUP_TYPE in [B_HOURLY]:
     print('# PGHOST = %s' % PGHOST)
     print('# PGUSER = %s' % PGUSER)
+    print('# PGPASSFILE = %s' % PGPASSFILE)
 
 # Backup...
 #
@@ -182,35 +184,45 @@ print('--] Hello [%s]' % BACKUP_START_TIME)
 #####
 # 0 #
 #####
+# Does the PGPASS file exist?
+if not os.path.isfile(PGPASSFILE):
+    print('--] PGPASSFILE (%s) does not exist' % PGPASSFILE)
+    sys.exit(1)
 # Check backup types...
 if BACKUP_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY, B_MONTHLY]:
     print('--] Unexpected BACKUP_TYPE (%s)' % BACKUP_TYPE)
-    sys.exit(1)
+    sys.exit(2)
 if BACKUP_PRIOR_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY]:
     print('--] Unexpected BACKUP_PRIOR_TYPE (%s)' % BACKUP_PRIOR_TYPE)
-    sys.exit(2)
+    sys.exit(3)
 
 #####
 # 1 #
 #####
 if not os.path.isdir(BACKUP_ROOT_DIR):
     print('--] Backup root directory does not exist (%s)' % BACKUP_ROOT_DIR)
-    sys.exit(3)
+    sys.exit(4)
 if not os.path.isdir(BACKUP_DIR):
     os.makedirs(BACKUP_DIR)
 
 if BACKUP_TYPE == B_HOURLY:
 
     # Hourly backups always create new backup files...
+    #
+    # Hourly backup do not have toi run every hour.
+    # The user can just run one each day but at least one
+    # hourly backup must be run as its the only type that
+    # creates backup files - the other types simply copy files
+    # from the prior type.
 
     #####
     # 2 #
     #####
     # The corresponding CronJob template should have
-    # "concurrencyPolicy: Forbid" so no two backup jobs can be of the same type.
-    # Therefore, if the 'live' backup file exists then we know it's here
-    # because of some catastrophic failure. We warn the user but then
-    # have to continue by replacing it (or removing it).
+    # "concurrencyPolicy: Forbid" so no two backup jobs
+    # can be of the same type. Therefore, if the 'live' backup file
+    # exists then we know it's here because of some catastrophic failure.
+    # We warn the user but then have to continue by replacing it.
     if os.path.exists(BACKUP):
         print('--] Warning. Live backup file exists (%s). It will be replaced.' % BACKUP)
 

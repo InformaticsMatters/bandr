@@ -13,5 +13,7 @@ ENV TZ=UTC
 # Populate the image...
 COPY backup.py ${APP_ROOT}/
 RUN chmod 755 ${APP_ROOT}/backup.py
+COPY pgpass ${APP_ROOT}/.pgpass
+RUN chmod 600 ${APP_ROOT}/.pgpass
 
 CMD [ "./backup.py" ]
