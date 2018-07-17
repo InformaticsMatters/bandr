@@ -232,21 +232,24 @@ if BACKUP_TYPE == B_HOURLY:
     #####
     print('--] Starting backup [%s]' % BACKUP_START_TIME)
     print("    $", BACKUP_CMD)
-    COMPLETED_PROCESS = subprocess.run(BACKUP_CMD, shell=True)
+    COMPLETED_PROCESS = subprocess.run(BACKUP_CMD, shell=True,
+                                       stderr=subprocess.PIPE)
     BACKUP_END_TIME = datetime.now()
     print('--] Backup finished [%s]' % BACKUP_END_TIME)
     ELAPSED_TIME = BACKUP_END_TIME - BACKUP_START_TIME
     print('--] Elapsed time %s' % ELAPSED_TIME)
 
-    # Check subprocess exit code
-    if COMPLETED_PROCESS.returncode != 0:
+    # Check subprocess exit code and stderr
+    if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
         print('--] Backup failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
         if COMPLETED_PROCESS.stderr:
             print('--] stderr follows...')
-            COMPLETED_PROCESS.stderr.decode("utf-8")
+            print(COMPLETED_PROCESS.stderr.decode("utf-8"))
+        # Remove the current backup
+        os.remove(BACKUP)
         sys.exit(0)
 
-    # Now, leave if there is no backup file.
+    # Leave if there is no backup file.
     if not os.path.isfile(BACKUP):
         print('--] No backup file was generated. Leaving')
         sys.exit(0)
