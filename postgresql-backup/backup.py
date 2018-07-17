@@ -247,6 +247,7 @@ if BACKUP_TYPE == B_HOURLY:
             print(COMPLETED_PROCESS.stderr.decode("utf-8"))
         # Remove the current backup
         os.remove(BACKUP)
+        print('--] Backup file removed [%s]' % BACKUP)
         sys.exit(0)
 
     # Leave if there is no backup file.
