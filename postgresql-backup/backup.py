@@ -106,7 +106,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '2.0.7'
+__version__ = '3.0.0'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
@@ -127,7 +127,7 @@ BACKUP_PRIOR_COUNT = int(os.environ.get('BACKUP_PRIOR_COUNT', '24'))
 # Extract configuration from the environment.
 PGHOST = os.environ.get('PGHOST', 'postgres')
 PGUSER = os.environ.get('PGUSER', 'postgres')
-PGPASSFILE = os.environ.get('PGPASSFILE', '.pgpass')
+PGPASSFILE = os.environ.get('PGPASSFILE', '${HOME}/.pgpass')
 
 # The backup config.
 # The root dir, below which you're likely to find
@@ -185,7 +185,8 @@ print('--] Hello [%s]' % BACKUP_START_TIME)
 # 0 #
 #####
 # Does the PGPASS file exist?
-if not os.path.isfile(PGPASSFILE):
+PGPASS_FILE = os.path.expandvars(PGPASSFILE)
+if not os.path.isfile(PGPASS_FILE):
     print('--] PGPASSFILE (%s) does not exist' % PGPASSFILE)
     sys.exit(1)
 # Check backup types...
