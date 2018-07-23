@@ -62,6 +62,17 @@ A number of environment variables control this utility: -
                         Used only for 'hourly' backup types
                         (default 'postgres')
 
+-   PGPASSFILE          If you have suplied your own '.pgpass' file
+                        and have not placed it in the default location
+                        set the value of this varibale to the path and file.
+                        i.e. "/mydirectory/.pgpass".
+
+-   PGADMINPASS         If you have not provided your own .pgpass file but
+                        want to replace the default password used in the
+                        built-in .pgpass file then set the password as this
+                        variable's value. The password will be written to
+                        the default .pgpass file before the backup begins.
+
 There are four values for BACKUP_TYPE: -
 
 - hourly    Typically the BACKUP_COUNT is 24.
@@ -106,7 +117,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '3.0.0'
+__version__ = '3.0.1'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
@@ -128,6 +139,8 @@ BACKUP_PRIOR_COUNT = int(os.environ.get('BACKUP_PRIOR_COUNT', '24'))
 PGHOST = os.environ.get('PGHOST', 'postgres')
 PGUSER = os.environ.get('PGUSER', 'postgres')
 PGPASSFILE = os.environ.get('PGPASSFILE', '${HOME}/.pgpass')
+PGADMINPASS = os.environ.get('PGADMINPASS', '-')
+HOME = os.environ['HOME']
 
 # The backup config.
 # The root dir, below which you're likely to find
@@ -143,6 +156,7 @@ BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 BACKUP_CMD = 'pg_dumpall --no-password --clean | gzip > %s' % BACKUP
 
 # Echo configuration...
+HAVE_ADMIN_PASS = False
 print('# BACKUP_TYPE = %s' % BACKUP_TYPE)
 print('# BACKUP_COUNT = %s' % BACKUP_COUNT)
 print('# BACKUP_DIR = %s' % BACKUP_DIR)
@@ -153,6 +167,11 @@ if BACKUP_TYPE in [B_HOURLY]:
     print('# PGHOST = %s' % PGHOST)
     print('# PGUSER = %s' % PGUSER)
     print('# PGPASSFILE = %s' % PGPASSFILE)
+    msg = '(not supplied)'
+    if PGADMINPASS not in ['-']:
+        HAVE_ADMIN_PASS = True
+        msg = '(supplied)'
+    print('# PGADMINPASS = %s' % msg)
 
 # Backup...
 #
@@ -230,6 +249,15 @@ if BACKUP_TYPE == B_HOURLY:
     #####
     # 3 #
     #####
+    # Replace 'default' .pgpass?
+    # If the user's supplied a password then replace the current
+    # (default) .pgapss file with a global password field
+    if HAVE_ADMIN_PASS:
+        print('--] Replacing default .pgpass file (Admin password supplied)')
+        pgpass_file = open('%s/.pgpass' % HOME, 'w')
+        pgpass_file.write('*:*:*:*:%s\n' % PGADMINPASS)
+        pgpass_file.close()
+    # Start the backup...
     print('--] Starting backup [%s]' % BACKUP_START_TIME)
     print("    $", BACKUP_CMD)
     COMPLETED_PROCESS = subprocess.run(BACKUP_CMD, shell=True,
