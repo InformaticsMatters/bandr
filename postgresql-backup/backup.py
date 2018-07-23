@@ -235,6 +235,7 @@ print('# BACKUP_DIR = %s' % BACKUP_DIR)
 if BACKUP_TYPE not in [B_HOURLY]:
     print('# BACKUP_PRIOR_TYPE = %s' % BACKUP_PRIOR_TYPE)
     print('# BACKUP_PRIOR_COUNT = %s' % BACKUP_PRIOR_COUNT)
+print('# BACKUP_PRE_EXIT_SLEEP_M = %s' % BACKUP_PRE_EXIT_SLEEP_M)
 if BACKUP_TYPE in [B_HOURLY]:
     print('# PGHOST = %s' % PGHOST)
     print('# PGUSER = %s' % PGUSER)
