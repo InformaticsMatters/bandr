@@ -18,69 +18,90 @@ and is the approximate time of the start of the backup process.
 
 A number of environment variables control this image's behaviour: -
 
--   BACKUP_TYPE         The type of backup. There are a number of pre-defined
-                        types: - 'hourly', 'daily', 'weekly' and 'monthly'.
-                        The 'hourly' is special in that it is the only backup
-                        that generates new files, the other types simply
-                        copy files to daily, weekly or monthly directories.
-                        Backup files are written to directories that match
-                        the type, i.e. /backup/daily. A description
-                        of each type can be found below.
-                        (default 'hourly')
+-   BACKUP_TYPE
 
--   BACKUP_COUNT        The number of backup files to maintain for the given
-                        backup type.
-                        (default '24')
+    The type of backup. There are a number of pre-defined
+    types: - 'hourly', 'daily', 'weekly' and 'monthly'.
+    The 'hourly' is special in that it is the only backup
+    that generates new files, the other types simply
+    copy files to daily, weekly or monthly directories.
+    Backup files are written to directories that match
+    the type, i.e. /backup/daily. A description
+    of each type can be found below.
+    (default 'hourly')
 
--   BACKUP_PRIOR_TYPE   The prior backup type (i.e. the type to copy from).
-                        It can be one of 'daily', 'weekly', 'monthly'.
-                        A 'weekly' BACKUP_TYPE would normally have a
-                        'daily' BACKUP_PRIOR_TYPE. It is used to decide
-                        where to get this backup's backup files from.
-                        Used only if BACKUP_TYPE is not 'hourly'.
-                        (default 'hourly')
+-   BACKUP_COUNT
 
--   BACKUP_PRIOR_COUNT  For types other than 'hourly' this is the number of
-                        backup files in the prior backup type that
-                        represent a 'full' set. When the prior backup directory
-                        contains this number of files the oldest is copied to
-                        this backup directory. i.e. if this is a 'weekly'
-                        backup and the prior type is 'daily' and you are
-                        collecting '6' daily files a weekly file will be
-                        created form the oldest daily directory when there are
-                        '24' files in the hourly directory. This is designed
-                        to prevent a backup form, copying a prior file until
-                        there are sufficient prior files.
-                        Used only if BACKUP_TYPE is not 'hourly'.
-                        (default '24')
+    The number of backup files to maintain for the given
+    backup type.
+    (default '24')
 
--   BACKUP_PRE_EXIT_SLEEP_M If set, this is the time (in minutes) that the
-                            container images sleeps for before exiting.
-                            It is used for debug purposes to allow entry into the
-                            container or for rsync testing purposes. The
-                            default value is '0' which means the containers
-                            exits immediately after completing the backup.
+-   BACKUP_PRIOR_TYPE
 
--   PGHOST              The Postgres database Hostname.
-                        Used only for 'hourly' backup types
-                        (default 'postgres')
+    The prior backup type (i.e. the type to copy from).
+    It can be one of 'daily', 'weekly', 'monthly'.
+    A 'weekly' BACKUP_TYPE would normally have a
+    'daily' BACKUP_PRIOR_TYPE. It is used to decide
+    where to get this backup's backup files from.
+    Used only if BACKUP_TYPE is not 'hourly'.
+    (default 'hourly')
 
--   PGUSER              The Postgres database User.
-                        Used only for 'hourly' backup types
-                        (default 'postgres')
+-   BACKUP_PRIOR_COUNT
 
--   PGPASSFILE          If you have suplied your own '.pgpass' file
-                        and have not placed it in the default location
-                        set the value of this varibale to the path and file.
-                        i.e. "/mydirectory/.pgpass". If you redirect the file
-                        using PGADMINPASS is pointless.
+    For types other than 'hourly' this is the number of
+    backup files in the prior backup type that
+    represent a 'full' set. When the prior backup directory
+    contains this number of files the oldest is copied to
+    this backup directory. i.e. if this is a 'weekly'
+    backup and the prior type is 'daily' and you are
+    collecting '6' daily files a weekly file will be
+    created form the oldest daily directory when there are
+    '24' files in the hourly directory. This is designed
+    to prevent a backup form, copying a prior file until
+    there are sufficient prior files.
+    Used only if BACKUP_TYPE is not 'hourly'.
+    (default '24')
 
--   PGADMINPASS         If you have not provided your own .pgpass file but
-                        want to replace the default password used in the
-                        built-in .pgpass file then set the password as this
-                        variable's value. The password will be written to
-                        the default .pgpass file before the backup begins.
-                        If you use this variable using PGPASSFILE is pointless.
+-   BACKUP_PRE_EXIT_SLEEP_M
+
+    If set, this is the time (in minutes) that the
+    container images sleeps for before exiting.
+    It is used for debug purposes to allow entry into the
+    container or for rsync testing purposes. The
+    default value is '0' which means the containers
+    exits immediately after completing the backup.
+    (default '0')
+
+-   PGHOST
+
+    The Postgres database Hostname.
+    Used only for 'hourly' backup types
+    (default 'postgres')
+
+-   PGUSER
+
+    The Postgres database User.
+    Used only for 'hourly' backup types
+    (default 'postgres')
+
+-   PGPASSFILE
+
+    If you have suplied your own '.pgpass' file
+    and have not placed it in the default location
+    set the value of this varibale to the path and file.
+    i.e. "/mydirectory/.pgpass". If you redirect the file
+    using PGADMINPASS is pointless.
+    (default '${HOME}/.pgpass')
+
+-   PGADMINPASS
+
+    If you have not provided your own .pgpass file but
+    want to replace the default password used in the
+    built-in .pgpass file then set the password as this
+    variable's value. The password will be written to
+    the default .pgpass file before the backup begins.
+    If you use this variable using PGPASSFILE is pointless.
+    (default '-')
 
 There are four values for BACKUP_TYPE: -
 
