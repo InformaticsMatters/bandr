@@ -2,8 +2,8 @@
 
 """A simple module to create and manage backups.
 
-The backup directory (BACKUP_DIR) is expected to have
-been mounted as some form of volume in the container image.
+The backup directory (BACKUP_DIR) is expected to have been mounted as a volume
+in the container image. Without this volume the backup will exit with an error.
 
 The backup files are named according to the following format: -
 
@@ -14,9 +14,9 @@ For example: -
     backup-2018-06-25T21:05:07Z-dumpall.sql.gz
 
 The time of the backup is the approximate time this utility is executed,
-i.e. the start time of the backup.
+and is the approximate time of the start of the backup process.
 
-A number of environment variables control this utility: -
+A number of environment variables control this image's behaviour: -
 
 -   BACKUP_TYPE         The type of backup. There are a number of pre-defined
                         types: - 'hourly', 'daily', 'weekly' and 'monthly'.
@@ -53,6 +53,13 @@ A number of environment variables control this utility: -
                         there are sufficient prior files.
                         Used only if BACKUP_TYPE is not 'hourly'.
                         (default '24')
+
+-   BACKUP_PRE_EXIT_SLEEP_M If set, this is the time (in minutes) that the
+                            container images sleeps for before exiting.
+                            It is used for debug purposes to allow entry into the
+                            container or for rsync testing purposes. The
+                            default value is '0' which means the containers
+                            exits immediately after completing the backup.
 
 -   PGHOST              The Postgres database Hostname.
                         Used only for 'hourly' backup types
@@ -154,6 +161,7 @@ import os
 import sys
 import subprocess
 import shutil
+import time
 from datetime import datetime
 
 # The module version.
@@ -177,6 +185,7 @@ BACKUP_TYPE = os.environ.get('BACKUP_TYPE', B_HOURLY).lower()
 BACKUP_COUNT = int(os.environ.get('BACKUP_COUNT', '24'))
 BACKUP_PRIOR_TYPE = os.environ.get('BACKUP_PRIOR_TYPE', B_HOURLY).lower()
 BACKUP_PRIOR_COUNT = int(os.environ.get('BACKUP_PRIOR_COUNT', '24'))
+BACKUP_PRE_EXIT_SLEEP_M = int(os.environ.get('BACKUP_PRE_EXIT_SLEEP_M', '0'))
 # Extract configuration from the environment.
 PGHOST = os.environ.get('PGHOST', 'postgres')
 PGUSER = os.environ.get('PGUSER', 'postgres')
@@ -389,5 +398,9 @@ if UNEXPIRED_BACKUPS:
         print('    %s' % UNEXPIRED_BACKUP)
 else:
     print('--] No unexpired backups to list')
+
+if BACKUP_PRE_EXIT_SLEEP_M > 0:
+    print('--] Sleeping (BACKUP_PRE_EXIT_SLEEP_M=%s)...' % BACKUP_PRE_EXIT_SLEEP_M)
+    time.sleep(BACKUP_PRE_EXIT_SLEEP_M * 60)
 
 print('--] Goodbye')
