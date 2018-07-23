@@ -65,13 +65,15 @@ A number of environment variables control this utility: -
 -   PGPASSFILE          If you have suplied your own '.pgpass' file
                         and have not placed it in the default location
                         set the value of this varibale to the path and file.
-                        i.e. "/mydirectory/.pgpass".
+                        i.e. "/mydirectory/.pgpass". If you redirect the file
+                        using PGADMINPASS is pointless.
 
 -   PGADMINPASS         If you have not provided your own .pgpass file but
                         want to replace the default password used in the
                         built-in .pgpass file then set the password as this
                         variable's value. The password will be written to
                         the default .pgpass file before the backup begins.
+                        If you use this variable using PGPASSFILE is pointless.
 
 There are four values for BACKUP_TYPE: -
 
@@ -101,6 +103,15 @@ There are four values for BACKUP_TYPE: -
             weekly directory contains BACKUP_PRIOR_COUNT backup files
             (normally 4). It makes sure that no more than BACKUP_COUNT
             files exist in the monthly directory.
+
+How does it work?
+
+The backup relies on the operation of the PostgreSQL client utility `pg_dumpall`.
+Given a postgres admin username (and a suitable .pgpass file) we leave
+everything up to it. The command is captured in the BACKUP_CMD variable.
+The resultant SQL file is then compressed with gzip. The user is then required
+to set the environment variables appropriately and run the container image regularly
+(as A CronJob in OpenShift).
 
 Alan Christie
 Informatics Matters
@@ -153,7 +164,7 @@ BACKUP_PRIOR_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_PRIOR_TYPE)
 BACKUP_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_TYPE)
 
 BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
-BACKUP_CMD = 'pg_dumpall --no-password --clean | gzip > %s' % BACKUP
+BACKUP_CMD = 'pg_dumpall --username=%s --no-password --clean | gzip > %s' % (PGUSER, BACKUP)
 
 # Echo configuration...
 HAVE_ADMIN_PASS = False
@@ -250,12 +261,15 @@ if BACKUP_TYPE == B_HOURLY:
     # 3 #
     #####
     # Replace 'default' .pgpass?
-    # If the user's supplied a password then replace the current
-    # (default) .pgapss file with a global password field
+    # If the user's supplied a password using PGADMINPASS
+    # then replace the current (default) .pgapss file with
+    # with a single wildcard line using the supplied value.
     if HAVE_ADMIN_PASS:
-        print('--] Replacing default .pgpass file (Admin password supplied)')
-        pgpass_file = open('%s/.pgpass' % HOME, 'w')
-        pgpass_file.write('*:*:*:*:%s\n' % PGADMINPASS)
+        pgpass_file_name = '%s/.pgpass' % HOME
+        print('--] Replacing "%s" (Admin password supplied)' % pgpass_file_name)
+        pgpass_file = open(pgpass_file_name, 'w')
+        password_entry = '*:*:*:*:%s' % PGADMINPASS
+        pgpass_file.write(password_entry)
         pgpass_file.close()
     # Start the backup...
     print('--] Starting backup [%s]' % BACKUP_START_TIME)
