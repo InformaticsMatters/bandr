@@ -1,6 +1,14 @@
 # Backup And Recovery container images
-This project contains backup and recovery container images that can be
+This project contains a backup container image definition that can be
 used as OpenShift `CronJob` processes to backup using configurable hourly,
 daily, weekly and monthly strategies.
 
->   A 'work in progress'
+There is also a recovery image definition that can be used as an OpenShift
+`Job` in order to list and/or recover the latest backup or a specific
+backup.
+
+Both images are available on the Docker hub.
+
+>   For a detailed description of each utility refer to `backup.py` or
+    `recovery.py`, where the operation and supported environment variables
+    are explained.

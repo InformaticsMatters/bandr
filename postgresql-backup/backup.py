@@ -2,7 +2,7 @@
 
 """A simple module to create and manage backups.
 
-The backup directory (BACKUP_DIR) is expected to have been mounted as a volume
+The backup directory (BACKUP_ROOT_DIR) is expected to have been mounted as a volume
 in the container image. Without this volume the backup will exit with an error.
 
 The backup files are named according to the following format: -
@@ -65,10 +65,10 @@ A number of environment variables control this image's behaviour: -
 -   BACKUP_PRE_EXIT_SLEEP_M
 
     If set, this is the time (in minutes) that the
-    container images sleeps for before exiting.
+    container image sleeps for before exiting.
     It is used for debug purposes to allow entry into the
     container or for rsync testing purposes. The
-    default value is '0' which means the containers
+    default value is '0' which means the container
     exits immediately after completing the backup.
     (default '0')
 
@@ -188,7 +188,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '3.0.1'
+__version__ = '3.0.2'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)

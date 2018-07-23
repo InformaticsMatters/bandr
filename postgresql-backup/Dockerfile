@@ -1,4 +1,4 @@
-FROM python:3.6.5-alpine3.7
+FROM python:3.6.6-alpine3.7
 
 ENV APP_ROOT /code
 ENV HOME /root
@@ -16,5 +16,9 @@ COPY backup.py ${APP_ROOT}/
 RUN chmod 755 ${APP_ROOT}/backup.py
 COPY pgpass ${HOME}/.pgpass
 RUN chmod 600 ${HOME}/.pgpass
+
+# Force the binary layer of the stdout and stderr streams
+# to be unbuffered
+ENV PYTHONUNBUFFERED 1
 
 CMD [ "./backup.py" ]
