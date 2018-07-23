@@ -7,6 +7,11 @@
 #
 # - POSTGRESQL_RECOVERY_V The recovery image version tag
 #                         (default latest)
+#
+# i.e.: -
+#
+#   POSTGRESQL_RECOVERY_V=stable docker-compose build
+#   POSTGRESQL_RECOVERY_V=stable docker-compose push
 
 version: '3.6'
 

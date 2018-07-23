@@ -7,6 +7,11 @@
 #
 # - POSTGRESQL_BACKUP_V The backup image version tag
 #                       (default latest)
+#
+# i.e.: -
+#
+#   POSTGRESQL_BACKUP_V=stable docker-compose build
+#   POSTGRESQL_BACKUP_V=stable docker-compose push
 
 version: '3.6'
 

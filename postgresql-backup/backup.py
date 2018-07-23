@@ -113,6 +113,37 @@ The resultant SQL file is then compressed with gzip. The user is then required
 to set the environment variables appropriately and run the container image regularly
 (as A CronJob in OpenShift).
 
+For simple deployment, where one admin password is sufficient, you can define the
+database administrator password as an environment variable (PGADMINPASS). The backup
+utility will replace the value in its built-in .pgpass file. Alternatively,
+for more complex deployments with multiple databse passwords you can replace the
+.pgpass file. In OpenShift you can do this with a ConfigMap, and that might
+look something like this: -
+
+    - kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: postgresql-pgpass
+      data:
+        .pgpass: |
+          *:*:*:*:${DB_ADMIN_PASSWORD}
+
+Then, to use that in your backup container, replacing the default .pgpass file,
+you simply define volumes and volumeMounts for the ConfigMap. A bit like this: -
+
+    containers:
+    - image: informaticsmatters/postgresql-backup:latest
+      [...]
+      volumeMounts:
+      - name: pgpass
+        mountPath: /root/.pgpass
+        subPath: .pgpass
+    volumes:
+    - name: pgpass
+      configMap:
+        name: postgresql-pgpass
+        defaultMode: 0600
+
 Alan Christie
 Informatics Matters
 July 2018
