@@ -188,14 +188,39 @@ if not BACKUP_FILE:
     print('--] Could not find the backup. Leaving.')
     sys.exit(0)
 
+# Unpack the backup to reveal the SQL
+# and then use this file in the psql recovery command.
 print('--] Recovering from %s...' % BACKUP_FILE)
-# Unpack the backup to its raw SQL
-# and then use this file in psql recdvery command.
+
 UNPACK_CMD = 'gunzip -c %s > dumpall.sql' % BACKUP_FILE
 print("    $", UNPACK_CMD)
 COMPLETED_PROCESS = subprocess.run(UNPACK_CMD, shell=True, stderr=subprocess.PIPE)
+
+# Check subprocess exit code and stderr
+if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
+    print('--] Unpack failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+    if COMPLETED_PROCESS.stderr:
+        print('--] stderr follows...')
+        print(COMPLETED_PROCESS.stderr.decode("utf-8"))
+    # Remove the current backup
+    os.remove(BACKUP)
+    print('--] Leaving')
+    sys.exit(0)
+
 RECOVERY_CMD = 'psql -h %s -U %s -f dumpall.sql template1' % (PGHOST, PGUSER)
 print("    $", RECOVERY_CMD)
+COMPLETED_PROCESS = subprocess.run(RECOVERY_CMD, shell=True, stderr=subprocess.PIPE)
+
+# Check subprocess exit code and stderr
+if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
+    print('--] Recovery failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+    if COMPLETED_PROCESS.stderr:
+        print('--] stderr follows...')
+        print(COMPLETED_PROCESS.stderr.decode("utf-8"))
+    # Remove the current backup
+    os.remove(BACKUP)
+    print('--] Leaving')
+    sys.exit(0)
 
 # Optional user-defined sleep (for connection/debug)
 if RECOVERY_PRE_EXIT_SLEEP_M > 0:
