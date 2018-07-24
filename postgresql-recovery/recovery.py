@@ -51,7 +51,6 @@ import glob
 import os
 import subprocess
 import sys
-import time
 
 # The module version.
 # Please adjust on every change

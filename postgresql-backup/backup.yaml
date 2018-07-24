@@ -24,8 +24,6 @@ labels:
 
 parameters:
 
-- name: BACKUP_REGISTRY
-  value: 'docker.io'
 - name: BACKUP_IMAGE
   value: 'informaticsmatters/postgresql-backup:stable'
 
@@ -63,6 +61,7 @@ objects:
                 value: hourly
               - name: BACKUP_COUNT
                 value: '24'
+
               - name: PGHOST
                 value: db-postgresql
               - name: PGADMINPASS
@@ -84,7 +83,6 @@ objects:
   apiVersion: batch/v2alpha1
   metadata:
     name: postgresql-backup-daily
-    namespace: ${BACKUP_NAMESPACE}
   spec:
     schedule: '55 0 * * *'
     startingDeadlineSeconds: 180
@@ -128,7 +126,6 @@ objects:
   apiVersion: batch/v2alpha1
   metadata:
     name: postgresql-backup-weekly
-    namespace: ${BACKUP_NAMESPACE}
   spec:
     schedule: '50 0 * * 0'
     startingDeadlineSeconds: 180
@@ -172,7 +169,6 @@ objects:
   apiVersion: batch/v2alpha1
   metadata:
     name: postgresql-backup-monthly
-    namespace: ${BACKUP_NAMESPACE}
   spec:
     schedule: '45 0 1 * *'
     startingDeadlineSeconds: 180

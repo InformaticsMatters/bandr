@@ -1,6 +1,10 @@
-# -----------------------------------------------------------------------------
-# Postgres Recovery (Job)
-# -----------------------------------------------------------------------------
+---
+
+# Example database recovery deployments.
+#
+# Used in conjunction with a backup this `Job` template
+# illustrates how to recover a backup against
+# a chosen databse.
 #
 # oc process -f recovery.yaml | oc create -f -
 # oc delete job --selector template=postgresql-recovery
@@ -22,11 +26,14 @@ parameters:
   value: 'latest'
 
 - name: PG_HOST
-  value: 'pgblob.recovery-test.svc'
+  value: 'pgserver.recovery-project.svc'
 - name: PG_USER
-  value: 'blob'
+  value: 'postgres'
 - name: PG_PASS
-  value: 'blob1234'
+  value: 'secret1234'
+
+- name: RECOVERY_IMAGE
+  value: 'informaticsmatters/postgresql-backup:stable'
 
 objects:
 
@@ -44,7 +51,7 @@ objects:
           name: postgresql-recovery
       spec:
         containers:
-        - image: informaticsmatters/postgresql-recovery:latest
+        - image: ${RECOVERY_IMAGE}
           name: postgresql-recovery
           volumeMounts:
           - name: postgresql-backup-data
