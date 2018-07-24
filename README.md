@@ -12,3 +12,15 @@ Both images are available on the Docker hub.
 >   For a detailed description of each utility refer to `backup.py` or
     `recovery.py`, where the operation and supported environment variables
     are explained.
+
+Assuming you've logged into Docker hub you can build the **latest** image
+with the following commands from the appropriate directory: -
+
+    $ docker-compose build
+    $ docker-compoise push
+    
+And the **stable** image with: -
+
+    $ IMAGE_TAG=stable docker-compose build
+    $ IMAGE_TAG=stable docker-compose push
+ 

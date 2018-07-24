@@ -195,20 +195,24 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     print('--] Leaving')
     sys.exit(0)
 
-RECOVERY_CMD = 'psql -q -h %s -U %s -f dumpall.sql template1' % (PGHOST, PGUSER)
+RECOVERY_CMD = 'psql -q -h %s -U %s -f dumpall.sql template1 > psql.out' % (PGHOST, PGUSER)
 print("    $", RECOVERY_CMD)
 COMPLETED_PROCESS = subprocess.run(RECOVERY_CMD, shell=True, stderr=subprocess.PIPE)
 
 # Check subprocess exit code and stderr
 # We should treat psql's stderr as a warning if the exit code is zero.
 if COMPLETED_PROCESS.stderr:
-    print('--] Warning, lines written to stderr' % COMPLETED_PROCESS.returncode)
+    print('--] Warning, lines written to stderr')
     print('--] stderr follows...')
     print(COMPLETED_PROCESS.stderr.decode("utf-8"))
 
 if COMPLETED_PROCESS.returncode != 0:
     print('--] Recovery failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+    if not COMPLETED_PROCESS.stderr:
+        print('--] There was nothing on stderr')
     print('--] Leaving (SQL can be found in dumpall.sql)')
     sys.exit(0)
+elif COMPLETED_PROCESS.stderr:
+    print('--] Although stderr was used the recovery was successful')
 
 print('--] Done')

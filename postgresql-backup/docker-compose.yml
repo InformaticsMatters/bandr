@@ -10,8 +10,8 @@
 #
 # i.e.: -
 #
-#   POSTGRESQL_BACKUP_V=stable docker-compose build
-#   POSTGRESQL_BACKUP_V=stable docker-compose push
+#   IMAGE_TAG=stable docker-compose build
+#   IMAGE_TAG=stable docker-compose push
 
 version: '3.6'
 
@@ -20,5 +20,5 @@ services:
   postgresql-backup:
     build:
       context: .
-    image: "informaticsmatters/postgresql-backup:${POSTGRESQL_BACKUP_V:-latest}"
+    image: "informaticsmatters/postgresql-backup:${IMAGE_TAG:-latest}"
     container_name: postgresql-backup

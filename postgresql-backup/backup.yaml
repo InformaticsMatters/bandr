@@ -1,0 +1,210 @@
+---
+
+# Example database backup deployments.
+#
+# A series of CronJob templates to demonstrate the multi-stage
+# feature of the backup image. One CronJob (hourly)
+# Makes new backups. Three other CronJopbs (daily, weekly, monthly)
+# copy the oldest backup pof the prior type maintaining hourly,
+# daily, weekly and monthly directories of backup files.
+#
+# oc process -f postgresl-backup.yaml | oc create -f -
+# oc delete all --selector template=postgresl-backup
+
+kind: Template
+apiVersion: v1
+metadata:
+  name: postgresql-backup
+  annotations:
+    description: PostgreSQL Backup Template
+    tags: postgres,backup,recovery
+labels:
+  template: postgresql-backup
+  app: postgresql-backup
+
+parameters:
+
+- name: BACKUP_REGISTRY
+  value: 'docker.io'
+- name: BACKUP_IMAGE
+  value: 'informaticsmatters/postgresql-backup:stable'
+
+objects:
+
+# The HOURLY CronJob (running at HH:07).
+# This job will create new postgres backups
+# Keeping the last 24 backups in the directory /backup/hourly
+- kind: CronJob
+  apiVersion: batch/v2alpha1
+  metadata:
+    name: postgresql-backup-hourly
+  spec:
+    schedule: '7 * * * *'
+    startingDeadlineSeconds: 180
+    concurrencyPolicy: Forbid
+    jobTemplate:
+      spec:
+        template:
+          metadata:
+            labels:
+              name: postgresql-backup
+          spec:
+            # Application containers
+            containers:
+            - image: ${BACK_IMAGE}
+              name: postgresql-backup
+              imagePullPolicy: Always
+              volumeMounts:
+              - name: postgresql-backup-data
+                mountPath: /backup
+
+              env:
+              - name: BACKUP_TYPE
+                value: hourly
+              - name: BACKUP_COUNT
+                value: '24'
+              - name: PGHOST
+                value: db-postgresql
+              - name: PGADMINPASS
+                valueFrom:
+                  secretKeyRef:
+                    name: postgresql-secrets
+                    key: database-admin-password
+
+            volumes:
+            - name: postgresql-backup-data
+              persistentVolumeClaim:
+                claimName: postgresql-backup-claim
+            restartPolicy: Never
+
+# The DAILY CronJob (at 00:55)
+# This job will copy the oldest hourly backup (when there are 24)
+# Keeping the last 6 backups in the directory /backup/daily
+- kind: CronJob
+  apiVersion: batch/v2alpha1
+  metadata:
+    name: postgresql-backup-daily
+    namespace: ${BACKUP_NAMESPACE}
+  spec:
+    schedule: '55 0 * * *'
+    startingDeadlineSeconds: 180
+    concurrencyPolicy: Forbid
+    jobTemplate:
+      spec:
+        template:
+          metadata:
+            labels:
+              name: backup-daily
+          spec:
+            # Application containers
+            containers:
+            - image: ${BACK_IMAGE}
+              name: postgresql-backup
+              imagePullPolicy: Always
+              volumeMounts:
+              - name: postgresql-backup-data
+                mountPath: /backup
+
+              env:
+              - name: BACKUP_TYPE
+                value: daily
+              - name: BACKUP_COUNT
+                value: '6'
+              - name: BACKUP_PRIOR_TYPE
+                value: hourly
+              - name: BACKUP_PRIOR_COUNT
+                value: '24'
+
+            volumes:
+            - name: postgresql-backup-data
+              persistentVolumeClaim:
+                claimName: postgresql-backup-claim
+            restartPolicy: Never
+
+# The WEEKLY CronJob (at 00:50 on Sunday)
+# This job will copy the oldest daily backup (when there are 6)
+# Keeping the last 3 backups in the directory /backup/weekly
+- kind: CronJob
+  apiVersion: batch/v2alpha1
+  metadata:
+    name: postgresql-backup-weekly
+    namespace: ${BACKUP_NAMESPACE}
+  spec:
+    schedule: '50 0 * * 0'
+    startingDeadlineSeconds: 180
+    concurrencyPolicy: Forbid
+    jobTemplate:
+      spec:
+        template:
+          metadata:
+            labels:
+              name: backup-weekly
+          spec:
+            # Application containers
+            containers:
+            - image: ${BACK_IMAGE}
+              name: postgresql-backup
+              imagePullPolicy: Always
+              volumeMounts:
+              - name: postgresql-backup-data
+                mountPath: /backup
+
+              env:
+              - name: BACKUP_TYPE
+                value: weekly
+              - name: BACKUP_COUNT
+                value: '3'
+              - name: BACKUP_PRIOR_TYPE
+                value: daily
+              - name: BACKUP_PRIOR_COUNT
+                value: '6'
+
+            volumes:
+            - name: postgresql-backup-data
+              persistentVolumeClaim:
+                claimName: postgresql-backup-claim
+            restartPolicy: Never
+
+# The MONTHLY CronJob (at 00:45 on the 1st of each month)
+# This job will copy the oldest weekly backup (when there are 3)
+# Keeping the last 11 backups in the directory /backup/monthly
+- kind: CronJob
+  apiVersion: batch/v2alpha1
+  metadata:
+    name: postgresql-backup-monthly
+    namespace: ${BACKUP_NAMESPACE}
+  spec:
+    schedule: '45 0 1 * *'
+    startingDeadlineSeconds: 180
+    concurrencyPolicy: Forbid
+    jobTemplate:
+      spec:
+        template:
+          metadata:
+            labels:
+              name: backup-monthly
+          spec:
+            # Application containers
+            containers:
+            - image: ${BACK_IMAGE}
+              name: postgresql-backup
+              imagePullPolicy: Always
+              volumeMounts:
+              - name: postgresql-backup-data
+                mountPath: /backup
+
+              env:
+              - name: BACKUP_TYPE
+                value: monthly
+              - name: BACKUP_COUNT
+                value: '11'
+              - name: BACKUP_PRIOR_TYPE
+                value: weekly
+              - name: BACKUP_PRIOR_COUNT
+                value: '3'
+
+            volumes:
+            - name: postgresql-backup-data
+              persistentVolumeClaim:
+                claimName: postgresql-backup-claim
+            restartPolicy: Never

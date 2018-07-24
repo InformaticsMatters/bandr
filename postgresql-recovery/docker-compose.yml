@@ -10,8 +10,8 @@
 #
 # i.e.: -
 #
-#   POSTGRESQL_RECOVERY_V=stable docker-compose build
-#   POSTGRESQL_RECOVERY_V=stable docker-compose push
+#   IMAGE_TAG=stable docker-compose build
+#   IMAGE_TAG=stable docker-compose push
 
 version: '3.6'
 
@@ -20,5 +20,5 @@ services:
   postgresql-recovery:
     build:
       context: .
-    image: "informaticsmatters/postgresql-recovery:${POSTGRESQL_RECOVERY_V:-latest}"
+    image: "informaticsmatters/postgresql-recovery:${IMAGE_TAG:-latest}"
     container_name: postgresql-recovery
