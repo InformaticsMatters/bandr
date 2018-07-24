@@ -22,16 +22,6 @@ A number of environment variables control this utility: -
     provided time will be used as a source of the recovery.
     (default 'NONE')
 
--   RECOVERY_PRE_EXIT_SLEEP_M
-
-    If set, this is the time (in minutes) that the
-    container image sleeps for before exiting.
-    It is used for debug purposes to allow entry into the
-    container or for testing purposes. The
-    default value is '0' which means the container
-    exits immediately after completing the recovery action.
-    (default '0')
-
 -   PGHOST
 
     The Postgres database Hostname.
@@ -79,7 +69,6 @@ print('# recovery.__version__ = %s' % __version__)
 # This is the time from the backup filename,
 # i.e. '2018-06-25T21:05:07Z'
 FROM_BACKUP = os.environ.get('FROM_BACKUP', 'LATEST').upper()
-RECOVERY_PRE_EXIT_SLEEP_M = int(os.environ.get('RECOVERY_PRE_EXIT_SLEEP_M', '0'))
 # Extract configuration from the environment.
 PGHOST = os.environ.get('PGHOST', 'postgres')
 PGUSER = os.environ.get('PGUSER', 'postgres')
@@ -94,7 +83,6 @@ BACKUP_FILE_PREFIX = 'backup'
 
 # Echo configuration...
 print('# FROM_BACKUP = %s' % FROM_BACKUP)
-print('# RECOVERY_PRE_EXIT_SLEEP_M = %s' % RECOVERY_PRE_EXIT_SLEEP_M)
 print('# PGHOST = %s' % PGHOST)
 print('# PGUSER = %s' % PGUSER)
 HAVE_ADMIN_PASS = False
@@ -207,24 +195,20 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     print('--] Leaving')
     sys.exit(0)
 
-RECOVERY_CMD = 'psql -h %s -U %s -f dumpall.sql template1' % (PGHOST, PGUSER)
+RECOVERY_CMD = 'psql -q -h %s -U %s -f dumpall.sql template1' % (PGHOST, PGUSER)
 print("    $", RECOVERY_CMD)
 COMPLETED_PROCESS = subprocess.run(RECOVERY_CMD, shell=True, stderr=subprocess.PIPE)
 
 # Check subprocess exit code and stderr
-if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
-    print('--] Recovery failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
-    if COMPLETED_PROCESS.stderr:
-        print('--] stderr follows...')
-        print(COMPLETED_PROCESS.stderr.decode("utf-8"))
-    # Remove the current backup
-    os.remove(BACKUP)
-    print('--] Leaving')
-    sys.exit(0)
+# We should treat psql's stderr as a warning if the exit code is zero.
+if COMPLETED_PROCESS.stderr:
+    print('--] Warning, lines written to stderr' % COMPLETED_PROCESS.returncode)
+    print('--] stderr follows...')
+    print(COMPLETED_PROCESS.stderr.decode("utf-8"))
 
-# Optional user-defined sleep (for connection/debug)
-if RECOVERY_PRE_EXIT_SLEEP_M > 0:
-    print('--] Sleeping (RECOVERY_PRE_EXIT_SLEEP_M=%s)...' % RECOVERY_PRE_EXIT_SLEEP_M)
-    time.sleep(RECOVERY_PRE_EXIT_SLEEP_M * 60)
+if COMPLETED_PROCESS.returncode != 0:
+    print('--] Recovery failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+    print('--] Leaving (SQL can be found in dumpall.sql)')
+    sys.exit(0)
 
 print('--] Done')

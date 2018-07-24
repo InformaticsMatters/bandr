@@ -5,6 +5,8 @@
 The backup directory (BACKUP_ROOT_DIR) is expected to have been mounted as a volume
 in the container image. Without this volume the backup will exit with an error.
 
+See https://www.postgresql.org/docs/9.2/static/app-pg-dumpall.html
+
 The backup files are named according to the following format: -
 
     <BACKUP_FILE_PREFIX>-<ISO-8601-DATETIME>-<BACKUP_LIVE_FILE>
