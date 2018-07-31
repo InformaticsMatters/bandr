@@ -190,7 +190,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '3.0.2'
+__version__ = '3.0.3'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
@@ -229,6 +229,11 @@ BACKUP_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_TYPE)
 BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 BACKUP_CMD = 'pg_dumpall --username=%s --no-password --clean | gzip > %s' % (PGUSER, BACKUP)
 
+# Units for bytes, KBytes etc.
+# Used in pretty_size() and expected to be the base-10 units
+# not the base 2 - i.e GBytes rather han GiBytes.
+SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
+
 # Echo configuration...
 HAVE_ADMIN_PASS = False
 print('# BACKUP_TYPE = %s' % BACKUP_TYPE)
@@ -247,6 +252,22 @@ if BACKUP_TYPE in [B_HOURLY]:
         HAVE_ADMIN_PASS = True
         msg = '(supplied)'
     print('# PGADMINPASS = %s' % msg)
+
+
+def pretty_size(number):
+    """Returns the number as a pretty number.
+    i.e. 2,971,821,278 is returned as '2.97 GBytes'
+
+    :param number: The number
+    :type number: ``Integer``
+    """
+    float_bytes = float(number)
+    scale_factor = 0
+    while float_bytes >= 1000 and scale_factor < len(SCALE_UNITS) - 1:
+        scale_factor += 1
+        float_bytes /= 1000
+    return "{0:,.2f} {1:}Bytes".format(float_bytes, SCALE_UNITS[scale_factor])
+
 
 # Backup...
 #
@@ -418,8 +439,12 @@ UNEXPIRED_BACKUPS = glob.glob(FILE_SEARCH)
 if UNEXPIRED_BACKUPS:
     print('--] Unexpired backups, most recent first (%s)...' % len(UNEXPIRED_BACKUPS))
     UNEXPIRED_BACKUPS.sort(reverse=True)
+    TOTAL_BACKUP_SIZE = 0
     for UNEXPIRED_BACKUP in UNEXPIRED_BACKUPS:
-        print('    %s' % UNEXPIRED_BACKUP)
+        BACKUP_SIZE = os.path.getsize(UNEXPIRED_BACKUP)
+        TOTAL_BACKUP_SIZE += BACKUP_SIZE
+        print('    %s (%s)' % (UNEXPIRED_BACKUP, pretty_size(BACKUP_SIZE)))
+    print('--] All backups occupy %s' % pretty_size(TOTAL_BACKUP_SIZE))
 else:
     print('--] No unexpired backups to list')
 

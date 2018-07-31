@@ -55,7 +55,7 @@ import sys
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 # Alternatives for Backup
 B_NONE = 'NONE'
@@ -80,6 +80,11 @@ HOME = os.environ['HOME']
 BACKUP_ROOT_DIR = '/backup'
 BACKUP_FILE_PREFIX = 'backup'
 
+# Units for bytes, KBytes etc.
+# Used in pretty_size() and expected to be the base-10 units
+# not the base 2 - i.e GBytes rather han GiBytes.
+SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
+
 # Echo configuration...
 print('# FROM_BACKUP = %s' % FROM_BACKUP)
 print('# PGHOST = %s' % PGHOST)
@@ -90,6 +95,22 @@ if PGADMINPASS not in ['-']:
     HAVE_ADMIN_PASS = True
     msg = '(supplied)'
 print('# PGADMINPASS = %s' % msg)
+
+
+def pretty_size(number):
+    """Returns the number as a pretty number.
+    i.e. 2,971,821,278 is returned as '2.97 GBytes'
+
+    :param number: The number
+    :type number: ``Integer``
+    """
+    float_bytes = float(number)
+    scale_factor = 0
+    while float_bytes >= 1000 and scale_factor < len(SCALE_UNITS) - 1:
+        scale_factor += 1
+        float_bytes /= 1000
+    return "{0:,.2f} {1:}Bytes".format(float_bytes, SCALE_UNITS[scale_factor])
+
 
 # Recover...
 #
@@ -138,10 +159,14 @@ for BACKUP in BACKUPS:
         KNOWN_BACKUPS[FILENAME] = DIRECTORY
 print('--] Known backups, most recent first (%s)...' % len(KNOWN_BACKUPS))
 if KNOWN_BACKUPS:
+    TOTAL_BACKUP_SIZE = 0
     for KNOWN_BACKUP in sorted(KNOWN_BACKUPS, reverse=True):
-        print('    %s' % KNOWN_BACKUP)
+        BACKUP_SIZE = os.path.getsize(KNOWN_BACKUP)
+        TOTAL_BACKUP_SIZE += BACKUP_SIZE
+        print('    %s (%s)' % (KNOWN_BACKUP, pretty_size(BACKUP_SIZE)))
         if not LATEST_BACKUP:
             LATEST_BACKUP = KNOWN_BACKUP
+    print('--] All backups occupy %s' % pretty_size(TOTAL_BACKUP_SIZE))
 else:
     print('    None')
 print('--] Latest backup: %s' % LATEST_BACKUP)
