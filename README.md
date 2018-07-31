@@ -17,7 +17,7 @@ Assuming you've logged into Docker hub you can build the **latest** image
 with the following commands from the appropriate directory: -
 
     $ docker-compose build
-    $ docker-compoise push
+    $ docker-compose push
     
 And the **stable** image with: -
 
