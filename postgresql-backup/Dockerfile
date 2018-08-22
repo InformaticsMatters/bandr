@@ -5,7 +5,7 @@ ENV HOME /root
 WORKDIR ${APP_ROOT}
 
 # Install the postgres client
-RUN apk --update add postgresql-client && \
+RUN apk --update add postgresql-client mysql-client && \
     apk add --no-cache tzdata rsync openssh && \
     rm -rf /var/cache/apk/*
 # Set the Alpine image timezone...
