@@ -190,7 +190,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '3.0.4'
+__version__ = '3.0.5'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
@@ -201,6 +201,12 @@ ERROR_UNEXPECTED_PBU_TYPE = 3
 ERROR_NO_ROOT = 4
 ERROR_BU_ERROR = 5
 ERROR_NO_BU = 6
+ERROR_MKDIR = 7
+ERROR_REMOVE = 8
+ERROR_BACKUP_COPY = 9
+ERROR_REMOVE_COPY = 10
+ERROR_REMOVE_EXPIRED = 11
+ERROR_REMOVE_OLDEST = 12
 
 # Backup types...
 B_HOURLY = 'hourly'
@@ -286,7 +292,7 @@ def error(error_no):
     :param error_no: An error number (ideally unique for each error)
     :type error_no: ``int``
     """
-    print('--] ERROR %s (leaving)', error_no)
+    print('--] Encountered unrecoverable ERROR [%s] ... leaving', error_no)
     sys.exit(0)
 
 
@@ -340,7 +346,12 @@ if not os.path.isdir(BACKUP_ROOT_DIR):
     print('--] Backup root directory does not exist (%s)' % BACKUP_ROOT_DIR)
     error(ERROR_NO_ROOT)
 if not os.path.isdir(BACKUP_DIR):
-    os.makedirs(BACKUP_DIR)
+    try:
+        os.makedirs(BACKUP_DIR)
+    except Exception as expn:
+        print('--] Exception creating backup directory (%s): -' % BACKUP_DIR)
+        print('--] %s' % expn)
+        error(ERROR_MKDIR)
 
 
 if BACKUP_TYPE == B_HOURLY:
@@ -395,7 +406,12 @@ if BACKUP_TYPE == B_HOURLY:
             print('--] stderr follows...')
             print(COMPLETED_PROCESS.stderr.decode("utf-8"))
         # Remove the current backup
-        os.remove(BACKUP)
+        try:
+            os.remove(BACKUP)
+        except Exception as expn:
+            print('--] Exception removing backup (%s): -' % BACKUP)
+            print('--] %s' % expn)
+            error(ERROR_REMOVE)
         print('--] Backup file removed [%s]' % BACKUP)
         error(ERROR_BU_ERROR)
 
@@ -418,8 +434,18 @@ if BACKUP_TYPE == B_HOURLY:
                                      BACKUP_LIVE_FILE)
     print('--] Copying %s to %s...' % (BACKUP_LIVE_FILE, COPY_BACKUP_FILE))
     BACKUP_TO = os.path.join(BACKUP_DIR, COPY_BACKUP_FILE)
-    shutil.copyfile(BACKUP, BACKUP_TO)
-    os.remove(BACKUP)
+    try:
+        shutil.copyfile(BACKUP, BACKUP_TO)
+    except Exception as expn:
+        print('--] Exception backup file (%s->%s): -' % (BACKUP, BACKUP_TO))
+        print('--] %s' % expn)
+        error(ERROR_BACKUP_COPY)
+    try:
+        os.remove(BACKUP)
+    except Exception as expn:
+        print('--] Exception removing unwanted backup file (%s): -' % BACKUP)
+        print('--] %s' % expn)
+        error(ERROR_REMOVE_COPY)
 
 else:
 
@@ -437,7 +463,12 @@ else:
         OLDEST_PRIOR = EXISTING_PRIOR_BACKUPS[0]
         print('--] Copying oldest %s to %s' % (BACKUP_PRIOR_TYPE, BACKUP_DIR))
         print('    %s' % OLDEST_PRIOR)
-        shutil.copy2(OLDEST_PRIOR, BACKUP_DIR)
+        try:
+            shutil.copy2(OLDEST_PRIOR, BACKUP_DIR)
+        except Exception as expn:
+            print('--] Exception copying oldest backup file (%s->%s): -' % OLDEST_PRIOR, BACKUP_DIR)
+            print('--] %s' % expn)
+            error(ERROR_REMOVE_OLDEST)
     else:
         print('--] Nothing to do. Too few prior backups (%s)' % NUM_PRIOR_BACKUPS)
 
@@ -453,7 +484,12 @@ if NUM_TO_DELETE > 0:
     EXISTING_BACKUPS.sort()
     for EXISTING_BACKUP in EXISTING_BACKUPS[:NUM_TO_DELETE]:
         print('    %s' % EXISTING_BACKUP)
-        os.remove(EXISTING_BACKUP)
+        try:
+            os.remove(EXISTING_BACKUP)
+        except Exception as expn:
+            print('--] Exception removing expired backup file (%s): -' % EXISTING_BACKUP)
+            print('--] %s' % expn)
+            error(ERROR_REMOVE_EXPIRED)
 else:
     print('--] No expired backups to delete')
 
