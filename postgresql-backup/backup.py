@@ -190,7 +190,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '3.0.3'
+__version__ = '3.0.4'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
@@ -269,6 +269,16 @@ def pretty_size(number):
     return "{0:,.2f} {1:}Bytes".format(float_bytes, SCALE_UNITS[scale_factor])
 
 
+def error():
+    """Issues an error line (debug information will already be present
+    on earlier log lines) and then exits with a SUCCESS code (to
+    prevent OpenShift restarting the container).
+
+    The method does not return.
+    """
+    sys.exit(0)
+
+
 # Backup...
 #
 # 0. Check environment
@@ -303,23 +313,24 @@ print('--] Hello [%s]' % BACKUP_START_TIME)
 PGPASS_FILE = os.path.expandvars(PGPASSFILE)
 if not os.path.isfile(PGPASS_FILE):
     print('--] PGPASSFILE (%s) does not exist' % PGPASSFILE)
-    sys.exit(1)
+    error()
 # Check backup types...
 if BACKUP_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY, B_MONTHLY]:
     print('--] Unexpected BACKUP_TYPE (%s)' % BACKUP_TYPE)
-    sys.exit(2)
+    error()
 if BACKUP_PRIOR_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY]:
     print('--] Unexpected BACKUP_PRIOR_TYPE (%s)' % BACKUP_PRIOR_TYPE)
-    sys.exit(3)
+    error()
 
 #####
 # 1 #
 #####
 if not os.path.isdir(BACKUP_ROOT_DIR):
     print('--] Backup root directory does not exist (%s)' % BACKUP_ROOT_DIR)
-    sys.exit(4)
+    error()
 if not os.path.isdir(BACKUP_DIR):
     os.makedirs(BACKUP_DIR)
+
 
 if BACKUP_TYPE == B_HOURLY:
 
@@ -375,12 +386,12 @@ if BACKUP_TYPE == B_HOURLY:
         # Remove the current backup
         os.remove(BACKUP)
         print('--] Backup file removed [%s]' % BACKUP)
-        sys.exit(0)
+        error()
 
     # Leave if there is no backup file.
     if not os.path.isfile(BACKUP):
         print('--] No backup file was generated. Leaving')
-        sys.exit(0)
+        error()
 
     print('--] Backup size {:,} bytes'.format(os.path.getsize(BACKUP)))
 

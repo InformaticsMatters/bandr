@@ -8,8 +8,8 @@
 # copy the oldest backup pof the prior type maintaining hourly,
 # daily, weekly and monthly directories of backup files.
 #
-# oc process -f postgresl-backup.yaml | oc create -f -
-# oc delete all --selector template=postgresl-backup
+# oc process -f backup.yaml | oc create -f -
+# oc delete job --selector template=postgreslq-backup
 
 kind: Template
 apiVersion: v1
