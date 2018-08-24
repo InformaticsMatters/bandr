@@ -195,6 +195,13 @@ __version__ = '3.0.4'
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
 
+ERROR_NO_PGPASS = 1
+ERROR_UNEXPECTED_BU_TYPE = 2
+ERROR_UNEXPECTED_PBU_TYPE = 3
+ERROR_NO_ROOT = 4
+ERROR_BU_ERROR = 5
+ERROR_NO_BU = 6
+
 # Backup types...
 B_HOURLY = 'hourly'
 B_DAILY = 'daily'
@@ -269,13 +276,17 @@ def pretty_size(number):
     return "{0:,.2f} {1:}Bytes".format(float_bytes, SCALE_UNITS[scale_factor])
 
 
-def error():
+def error(error_no):
     """Issues an error line (debug information will already be present
     on earlier log lines) and then exits with a SUCCESS code (to
     prevent OpenShift restarting the container).
 
     The method does not return.
+
+    :param error_no: An error number (ideally unique for each error)
+    :type error_no: ``int``
     """
+    print('--] ERROR %s (leaving)', error_no)
     sys.exit(0)
 
 
@@ -313,21 +324,21 @@ print('--] Hello [%s]' % BACKUP_START_TIME)
 PGPASS_FILE = os.path.expandvars(PGPASSFILE)
 if not os.path.isfile(PGPASS_FILE):
     print('--] PGPASSFILE (%s) does not exist' % PGPASSFILE)
-    error()
+    error(ERROR_NO_PGPASS)
 # Check backup types...
 if BACKUP_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY, B_MONTHLY]:
     print('--] Unexpected BACKUP_TYPE (%s)' % BACKUP_TYPE)
-    error()
+    error(ERROR_UNEXPECTED_BU_TYPE)
 if BACKUP_PRIOR_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY]:
     print('--] Unexpected BACKUP_PRIOR_TYPE (%s)' % BACKUP_PRIOR_TYPE)
-    error()
+    error(ERROR_UNEXPECTED_PBU_TYPE)
 
 #####
 # 1 #
 #####
 if not os.path.isdir(BACKUP_ROOT_DIR):
     print('--] Backup root directory does not exist (%s)' % BACKUP_ROOT_DIR)
-    error()
+    error(ERROR_NO_ROOT)
 if not os.path.isdir(BACKUP_DIR):
     os.makedirs(BACKUP_DIR)
 
@@ -386,12 +397,12 @@ if BACKUP_TYPE == B_HOURLY:
         # Remove the current backup
         os.remove(BACKUP)
         print('--] Backup file removed [%s]' % BACKUP)
-        error()
+        error(ERROR_BU_ERROR)
 
     # Leave if there is no backup file.
     if not os.path.isfile(BACKUP):
         print('--] No backup file was generated. Leaving')
-        error()
+        error(ERROR_NO_BU)
 
     print('--] Backup size {:,} bytes'.format(os.path.getsize(BACKUP)))
 
