@@ -292,7 +292,7 @@ def error(error_no):
     :param error_no: An error number (ideally unique for each error)
     :type error_no: ``int``
     """
-    print('--] Encountered unrecoverable ERROR [%s] ... leaving', error_no)
+    print('--] Encountered unrecoverable ERROR [%s] ... leaving' % error_no)
     sys.exit(0)
 
 
