@@ -18,6 +18,8 @@ For example: -
 The time of the backup is the approximate time this utility is executed,
 and is the approximate time of the start of the backup process.
 
+The backup supports both PostgreSQL and MySQL backups.
+
 A number of environment variables control this image's behaviour: -
 
 -   BACKUP_TYPE
@@ -78,7 +80,9 @@ A number of environment variables control this image's behaviour: -
 
     The Postgres database Hostname.
     Used only for 'hourly' backup types
-    (default 'postgres')
+    (default ''). You must either define
+    PGHOST for PostgreSQL backups
+    or MSHOST or MySQL (see below) backups.
 
 -   PGUSER
 
@@ -104,6 +108,29 @@ A number of environment variables control this image's behaviour: -
     the default .pgpass file before the backup begins.
     If you use this variable using PGPASSFILE is pointless.
     (default '-')
+
+-   MSHOST
+
+    The MySQL host address.
+    Used only for 'hourly' backup types
+    (default ''). You must either define
+    PGHOST for PostgreSQL backups (se above)
+    or MSHOST or MySQL backups.
+
+-   MSPORT
+
+    The MySQL database port.
+    (default 3306).
+
+-   MSUSER
+
+    The MySQL database root user.
+    Defined if backing up MySQL.
+
+-   MSPASS
+
+    The MySQL database root user password.
+    Defined if backing up MySQL.
 
 There are four values for BACKUP_TYPE: -
 
@@ -134,7 +161,7 @@ There are four values for BACKUP_TYPE: -
             (normally 4). It makes sure that no more than BACKUP_COUNT
             files exist in the monthly directory.
 
-How does it work?
+How does it work? (PostgreSQL)
 
 The backup relies on the operation of the PostgreSQL client utility `pg_dumpall`.
 Given a postgres admin username (and a suitable .pgpass file) we leave
@@ -190,7 +217,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '3.0.5'
+__version__ = '3.1.0'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
@@ -207,6 +234,16 @@ ERROR_BACKUP_COPY = 9
 ERROR_REMOVE_COPY = 10
 ERROR_REMOVE_EXPIRED = 11
 ERROR_REMOVE_OLDEST = 12
+ERROR_UNDEFINED_MSPASS = 13
+
+# Hide the backup command?
+# Probably important for MySQL, where the password
+# is provided as apart of the command.
+HIDE_BACKUP_COMMAND = True
+
+# Supported database flavours...
+FLAVOUR_POSTGRESQL = 'postgresql'
+FLAVOUR_MYSQL = 'mysql'
 
 # Backup types...
 B_HOURLY = 'hourly'
@@ -223,11 +260,17 @@ BACKUP_PRIOR_TYPE = os.environ.get('BACKUP_PRIOR_TYPE', B_HOURLY).lower()
 BACKUP_PRIOR_COUNT = int(os.environ.get('BACKUP_PRIOR_COUNT', '24'))
 BACKUP_PRE_EXIT_SLEEP_M = int(os.environ.get('BACKUP_PRE_EXIT_SLEEP_M', '0'))
 # Extract configuration from the environment.
-PGHOST = os.environ.get('PGHOST', 'postgres')
+# Postgres material...
+PGHOST = os.environ.get('PGHOST', '')
 PGUSER = os.environ.get('PGUSER', 'postgres')
 PGPASSFILE = os.environ.get('PGPASSFILE', '${HOME}/.pgpass')
 PGADMINPASS = os.environ.get('PGADMINPASS', '-')
 HOME = os.environ['HOME']
+# MySQL material...
+MSHOST = os.environ.get('MSHOST', '')
+MSPORT = os.environ.get('MSPORT', '3306')
+MSUSER = os.environ.get('MSUSER', '')
+MSPASS = os.environ.get('MSPASS', '')
 
 # The backup config.
 # The root dir, below which you're likely to find
@@ -238,9 +281,27 @@ BACKUP_FILE_PREFIX = 'backup'       # Prefix for older files
 
 BACKUP_PRIOR_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_PRIOR_TYPE)
 BACKUP_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_TYPE)
-
 BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
-BACKUP_CMD = 'pg_dumpall --username=%s --no-password --clean | gzip > %s' % (PGUSER, BACKUP)
+
+# Backup commands for the various database flavours...
+BACKUP_COMMANDS= {
+    FLAVOUR_POSTGRESQL: 'pg_dumpall --username=%s --no-password --clean'
+                        ' | gzip > %s' % (PGUSER, BACKUP),
+    FLAVOUR_MYSQL: 'mysqldump --all-databases --host=%s --port=%s'
+                   ' --single-transaction --user=%s --password="%s" '
+                   ' --skip-lock-tables | gzip > %s'
+                   % (MSHOST, MSPORT, MSUSER, MSPASS, BACKUP)
+}
+
+# What 'flavour' of database do we expect to be backing up?
+# We currently support Postgres and MySQL.
+# The flavour is determined by the environment variables that we find.
+# If PGHOST has been defined then we'll expect a Postgres database
+#
+# This really only applies to B_HOURLY backups, as that's the only
+# type that actually creates new backup files.
+DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL if PGHOST else FLAVOUR_MYSQL
+BACKUP_CMD = BACKUP_COMMANDS[DATABASE_FLAVOUR]
 
 # Units for bytes, KBytes etc.
 # Used in pretty_size() and expected to be the base-10 units
@@ -249,6 +310,7 @@ SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
 
 # Echo configuration...
 HAVE_ADMIN_PASS = False
+print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
 print('# BACKUP_TYPE = %s' % BACKUP_TYPE)
 print('# BACKUP_COUNT = %s' % BACKUP_COUNT)
 print('# BACKUP_DIR = %s' % BACKUP_DIR)
@@ -257,14 +319,19 @@ if BACKUP_TYPE not in [B_HOURLY]:
     print('# BACKUP_PRIOR_COUNT = %s' % BACKUP_PRIOR_COUNT)
 print('# BACKUP_PRE_EXIT_SLEEP_M = %s' % BACKUP_PRE_EXIT_SLEEP_M)
 if BACKUP_TYPE in [B_HOURLY]:
-    print('# PGHOST = %s' % PGHOST)
-    print('# PGUSER = %s' % PGUSER)
-    print('# PGPASSFILE = %s' % PGPASSFILE)
-    msg = '(not supplied)'
-    if PGADMINPASS not in ['-']:
-        HAVE_ADMIN_PASS = True
-        msg = '(supplied)'
-    print('# PGADMINPASS = %s' % msg)
+    if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
+        print('# PGHOST = %s' % PGHOST)
+        print('# PGUSER = %s' % PGUSER)
+        print('# PGPASSFILE = %s' % PGPASSFILE)
+        msg = '(not supplied)'
+        if PGADMINPASS not in ['-']:
+            HAVE_ADMIN_PASS = True
+            msg = '(supplied)'
+        print('# PGADMINPASS = %s' % msg)
+    else:
+        print('# MSHOST = %s' % MSHOST)
+        print('# MSPORT = %s' % MSPORT)
+        print('# MSUSER = %s' % MSUSER)
 
 
 def pretty_size(number):
@@ -326,11 +393,16 @@ print('--] Hello [%s]' % BACKUP_START_TIME)
 #####
 # 0 #
 #####
-# Does the PGPASS file exist?
-PGPASS_FILE = os.path.expandvars(PGPASSFILE)
-if not os.path.isfile(PGPASS_FILE):
-    print('--] PGPASSFILE (%s) does not exist' % PGPASSFILE)
-    error(ERROR_NO_PGPASS)
+# If PostgreSQL Does the PGPASS file exist?
+if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
+    PGPASS_FILE = os.path.expandvars(PGPASSFILE)
+    if not os.path.isfile(PGPASS_FILE):
+        print('--] PGPASSFILE (%s) does not exist' % PGPASSFILE)
+        error(ERROR_NO_PGPASS)
+else:
+    if not MSPASS:
+        print('--] MSPASS has not been defined')
+        error(ERROR_UNDEFINED_MSPASS)
 # Check backup types...
 if BACKUP_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY, B_MONTHLY]:
     print('--] Unexpected BACKUP_TYPE (%s)' % BACKUP_TYPE)
@@ -352,7 +424,6 @@ if not os.path.isdir(BACKUP_DIR):
         print('--] Exception creating backup directory (%s): -' % BACKUP_DIR)
         print('--] %s' % expn)
         error(ERROR_MKDIR)
-
 
 if BACKUP_TYPE == B_HOURLY:
 
@@ -378,11 +449,11 @@ if BACKUP_TYPE == B_HOURLY:
     #####
     # 3 #
     #####
-    # Replace 'default' .pgpass?
+    # If postgreSQL do we replace 'default' .pgpass?
     # If the user's supplied a password using PGADMINPASS
     # then replace the current (default) .pgapss file with
-    # with a single wildcard line using the supplied value.
-    if HAVE_ADMIN_PASS:
+    # with a single wildcard line using the supplied value.]
+    if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL] and HAVE_ADMIN_PASS:
         pgpass_file_name = '%s/.pgpass' % HOME
         print('--] Replacing "%s" (Admin password supplied)' % pgpass_file_name)
         pgpass_file = open(pgpass_file_name, 'w')
@@ -391,7 +462,8 @@ if BACKUP_TYPE == B_HOURLY:
         pgpass_file.close()
     # Start the backup...
     print('--] Starting backup [%s]' % BACKUP_START_TIME)
-    print("    $", BACKUP_CMD)
+    if not HIDE_BACKUP_COMMAND:
+        print("    $", BACKUP_CMD)
     COMPLETED_PROCESS = subprocess.run(BACKUP_CMD, shell=True,
                                        stderr=subprocess.PIPE)
     BACKUP_END_TIME = datetime.now()
@@ -404,7 +476,7 @@ if BACKUP_TYPE == B_HOURLY:
         print('--] Backup failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
         if COMPLETED_PROCESS.stderr:
             print('--] stderr follows...')
-            print(COMPLETED_PROCESS.stderr.decode("utf-8"))
+            print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
         # Remove the current backup
         try:
             os.remove(BACKUP)

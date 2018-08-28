@@ -1,6 +1,6 @@
 ---
 
-# Example database backup deployments.
+# Example postgres database backup deployments.
 #
 # A series of CronJob templates to demonstrate the multi-stage
 # feature of the backup image. One CronJob (hourly)
@@ -14,18 +14,18 @@
 kind: Template
 apiVersion: v1
 metadata:
-  name: postgresql-backup
+  name: mysql-backup
   annotations:
-    description: PostgreSQL Backup Template
-    tags: postgres,backup,recovery
+    description: MySQL Backup Template
+    tags: mysql,backup,recovery
 labels:
-  template: postgresql-backup
-  app: postgresql-backup
+  template: mysql-backup
+  app: mysql-backup
 
 parameters:
 
 - name: BACKUP_IMAGE
-  value: 'informaticsmatters/postgresql-backup:stable'
+  value: 'informaticsmatters/sql-backup:stable'
 
 objects:
 
@@ -35,7 +35,7 @@ objects:
 - kind: CronJob
   apiVersion: batch/v2alpha1
   metadata:
-    name: postgresql-backup-hourly
+    name: mysql-backup-hourly
   spec:
     schedule: '7 * * * *'
     startingDeadlineSeconds: 180
@@ -45,15 +45,15 @@ objects:
         template:
           metadata:
             labels:
-              name: postgresql-backup
+              name: mysql-backup
           spec:
             # Application containers
             containers:
-            - image: ${BACK_IMAGE}
-              name: postgresql-backup
+            - image: ${BACKUP_IMAGE}
+              name: mysql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: postgresql-backup-data
+              - name: mysql-backup-data
                 mountPath: /backup
 
               env:
@@ -62,18 +62,23 @@ objects:
               - name: BACKUP_COUNT
                 value: '24'
 
-              - name: PGHOST
-                value: db-postgresql
-              - name: PGADMINPASS
+              - name: MSHOST
+                value: db-mysql
+              - name: MSUSER
                 valueFrom:
                   secretKeyRef:
-                    name: postgresql-secrets
-                    key: database-admin-password
+                    name: mysql-secrets
+                    key: database-admin-user
+              - name: MSPASS
+                valueFrom:
+                  secretKeyRef:
+                    name: mysql-secrets
+                    key: database-admin-pass
 
             volumes:
-            - name: postgresql-backup-data
+            - name: mysql-backup-data
               persistentVolumeClaim:
-                claimName: postgresql-backup-claim
+                claimName: mysql-backup-claim
             restartPolicy: Never
 
 # The DAILY CronJob (at 00:55)
@@ -82,7 +87,7 @@ objects:
 - kind: CronJob
   apiVersion: batch/v2alpha1
   metadata:
-    name: postgresql-backup-daily
+    name: mysql-backup-daily
   spec:
     schedule: '55 0 * * *'
     startingDeadlineSeconds: 180
@@ -96,11 +101,11 @@ objects:
           spec:
             # Application containers
             containers:
-            - image: ${BACK_IMAGE}
-              name: postgresql-backup
+            - image: ${BACKUP_IMAGE}
+              name: mysql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: postgresql-backup-data
+              - name: mysql-backup-data
                 mountPath: /backup
 
               env:
@@ -114,9 +119,9 @@ objects:
                 value: '24'
 
             volumes:
-            - name: postgresql-backup-data
+            - name: mysql-backup-data
               persistentVolumeClaim:
-                claimName: postgresql-backup-claim
+                claimName: mysql-backup-claim
             restartPolicy: Never
 
 # The WEEKLY CronJob (at 00:50 on Sunday)
@@ -125,7 +130,7 @@ objects:
 - kind: CronJob
   apiVersion: batch/v2alpha1
   metadata:
-    name: postgresql-backup-weekly
+    name: mysql-backup-weekly
   spec:
     schedule: '50 0 * * 0'
     startingDeadlineSeconds: 180
@@ -139,11 +144,11 @@ objects:
           spec:
             # Application containers
             containers:
-            - image: ${BACK_IMAGE}
-              name: postgresql-backup
+            - image: ${BACKUP_IMAGE}
+              name: mysql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: postgresql-backup-data
+              - name: mysql-backup-data
                 mountPath: /backup
 
               env:
@@ -157,9 +162,9 @@ objects:
                 value: '6'
 
             volumes:
-            - name: postgresql-backup-data
+            - name: mysql-backup-data
               persistentVolumeClaim:
-                claimName: postgresql-backup-claim
+                claimName: mysql-backup-claim
             restartPolicy: Never
 
 # The MONTHLY CronJob (at 00:45 on the 1st of each month)
@@ -168,7 +173,7 @@ objects:
 - kind: CronJob
   apiVersion: batch/v2alpha1
   metadata:
-    name: postgresql-backup-monthly
+    name: mysql-backup-monthly
   spec:
     schedule: '45 0 1 * *'
     startingDeadlineSeconds: 180
@@ -182,11 +187,11 @@ objects:
           spec:
             # Application containers
             containers:
-            - image: ${BACK_IMAGE}
-              name: postgresql-backup
+            - image: ${BACKUP_IMAGE}
+              name: mysql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: postgresql-backup-data
+              - name: mysql-backup-data
                 mountPath: /backup
 
               env:
@@ -200,7 +205,7 @@ objects:
                 value: '3'
 
             volumes:
-            - name: postgresql-backup-data
+            - name: mysql-backup-data
               persistentVolumeClaim:
-                claimName: postgresql-backup-claim
+                claimName: mysql-backup-claim
             restartPolicy: Never
