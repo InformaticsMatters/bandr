@@ -3,10 +3,10 @@
 # Recovery Image Docker-Compose file.
 #
 # You can control some of the behaviour of the build
-# with a few environment variables: -
+# with environment variables: -
 #
-# - POSTGRESQL_RECOVERY_V The recovery image version tag
-#                         (default latest)
+# - IMAGE_TAG The recovery image version tag
+#             (default latest)
 #
 # i.e.: -
 #
