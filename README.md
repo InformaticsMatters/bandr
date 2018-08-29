@@ -14,7 +14,8 @@ Both images are available on the Docker hub.
 
 >   Backup do not work for MySQL 8 at the moment. In MySQL 8.0,
     **caching_sha2_password** is the default authentication plugin
-    rather than **mysql_native_password**.
+    rather than **mysql_native_password**. See
+    https://stackoverflow.com/questions/49963383/authentication-plugin-caching-sha2-password
 
 >   For a detailed description of each utility refer to `backup.py` or
     `recovery.py`, where the operation and supported environment variables
