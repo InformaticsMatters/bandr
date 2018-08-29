@@ -1,12 +1,14 @@
 # Backup and Recovery container images
 This project contains a backup container image definition that can be
 used as OpenShift `CronJob` processes to backup using configurable hourly,
-daily, weekly and monthly strategies for either PostgreSQL or MySQL
-databases.
+daily, weekly and monthly strategies.
 
 There is also a recovery image definition that can be used as an OpenShift
 `Job` in order to list and/or recover the latest backup or a specific
 backup.
+
+The images support PostgreSQL and MySQL databases, controlled by
+environment variables.
 
 Both images are available on the Docker hub.
 
