@@ -1,12 +1,12 @@
 ---
 
-# Example postgres database backup deployments.
+# Example MySQL database backup deployments.
 #
 # A series of CronJob templates to demonstrate the multi-stage
 # feature of the backup image. One CronJob (hourly)
-# Makes new backups. Three other CronJopbs (daily, weekly, monthly)
-# copy the oldest backup pof the prior type maintaining hourly,
-# daily, weekly and monthly directories of backup files.
+# Makes new backups. Three other CronJobs (daily, weekly, monthly)
+# copy the oldest backup of the prior type so the suite maintains hourly,
+# daily, weekly and monthly directories of the backup files.
 #
 # oc process -f backup.yaml | oc create -f -
 # oc delete job --selector template=postgreslq-backup
@@ -53,7 +53,7 @@ objects:
               name: mysql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: mysql-backup-data
+              - name: backup-data
                 mountPath: /backup
 
               env:
@@ -76,9 +76,9 @@ objects:
                     key: database-admin-pass
 
             volumes:
-            - name: mysql-backup-data
+            - name: backup-data
               persistentVolumeClaim:
-                claimName: mysql-backup-claim
+                claimName: backup-claim
             restartPolicy: Never
 
 # The DAILY CronJob (at 00:55)
@@ -105,7 +105,7 @@ objects:
               name: mysql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: mysql-backup-data
+              - name: backup-data
                 mountPath: /backup
 
               env:
@@ -119,9 +119,9 @@ objects:
                 value: '24'
 
             volumes:
-            - name: mysql-backup-data
+            - name: backup-data
               persistentVolumeClaim:
-                claimName: mysql-backup-claim
+                claimName: backup-claim
             restartPolicy: Never
 
 # The WEEKLY CronJob (at 00:50 on Sunday)
@@ -148,7 +148,7 @@ objects:
               name: mysql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: mysql-backup-data
+              - name: backup-data
                 mountPath: /backup
 
               env:
@@ -162,9 +162,9 @@ objects:
                 value: '6'
 
             volumes:
-            - name: mysql-backup-data
+            - name: backup-data
               persistentVolumeClaim:
-                claimName: mysql-backup-claim
+                claimName: backup-claim
             restartPolicy: Never
 
 # The MONTHLY CronJob (at 00:45 on the 1st of each month)
@@ -191,7 +191,7 @@ objects:
               name: mysql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: mysql-backup-data
+              - name: backup-data
                 mountPath: /backup
 
               env:
@@ -205,7 +205,7 @@ objects:
                 value: '3'
 
             volumes:
-            - name: mysql-backup-data
+            - name: backup-data
               persistentVolumeClaim:
-                claimName: mysql-backup-claim
+                claimName: backup-claim
             restartPolicy: Never

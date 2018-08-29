@@ -17,7 +17,7 @@ parameters:
 - name: STORAGE_CLASS
   value: glusterfs-storage
 
-- name: POSTGRESQL_BACKUP_VOLUME_SIZE
+- name: BACKUP_VOLUME_SIZE
   value: 125Gi
 
 objects:
@@ -25,13 +25,13 @@ objects:
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    name: postgresql-backup-claim
+    name: backup-claim
     labels:
-      application: postgresql-backup
+      application: backup
   spec:
     accessModes:
     - ReadWriteMany
     resources:
       requests:
-        storage: "${POSTGRESQL_BACKUP_VOLUME_SIZE}"
+        storage: "${BACKUP_VOLUME_SIZE}"
     storageClassName: ${STORAGE_CLASS}

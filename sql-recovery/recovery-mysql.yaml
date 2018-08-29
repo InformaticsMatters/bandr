@@ -6,30 +6,30 @@
 # illustrates how to recover a backup against
 # a chosen database.
 #
-# oc process -f recovery-postgresql.yaml | oc create -f -
-# oc delete job --selector template=postgresql-recovery
+# oc process -f recovery-mysql.yaml | oc create -f -
+# oc delete job --selector template=mysql-recovery
 
 kind: Template
 apiVersion: v1
 metadata:
-  name: postgresql-recovery
+  name: mysql-recovery
   annotations:
-    description: PostgreSQL Revovery Template
-    tags: postgres,backup,recovery
+    description: MySQL Revovery Template
+    tags: mysql,backup,recovery
 labels:
-  template: postgresql-recovery
-  app: postgresql-recovery
+  template: mysql-recovery
+  app: mysql-recovery
 
 parameters:
 
 - name: FROM_BACKUP
   value: 'latest'
 
-- name: PG_HOST
-  value: 'pgserver.recovery-project.svc'
-- name: PG_USER
-  value: 'postgres'
-- name: PG_PASS
+- name: MS_HOST
+  value: 'mysql.recovery-project.svc'
+- name: MS_USER
+  value: 'root'
+- name: MS_PASS
   value: 'secret1234'
 
 - name: RECOVERY_IMAGE
@@ -40,19 +40,19 @@ objects:
 - kind: Job
   apiVersion: batch/v1
   metadata:
-    name: postgresql-recovery
+    name: mysql-recovery
   spec:
     replicas: 1
     selector:
-      name: postgresql-recovery
+      name: mysql-recovery
     template:
       metadata:
         labels:
-          name: postgresql-recovery
+          name: mysql-recovery
       spec:
         containers:
         - image: ${RECOVERY_IMAGE}
-          name: postgresql-recovery
+          name: mysql-recovery
           volumeMounts:
           - name: backup-data
             mountPath: /backup
@@ -60,12 +60,12 @@ objects:
           env:
           - name: FROM_BACKUP
             value: ${FROM_BACKUP}
-          - name: PGHOST
-            value: ${PG_HOST}
-          - name: PGUSER
-            value: ${PG_USER}
-          - name: PGADMINPASS
-            value: ${PG_PASS}
+          - name: MSHOST
+            value: ${MS_HOST}
+          - name: MSUSER
+            value: ${MS_USER}
+          - name: MSPASS
+            value: ${MS_PASS}
 
         volumes:
         - name: backup-data
