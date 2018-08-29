@@ -240,7 +240,7 @@ ERROR_BACKUP_COPY = 9
 ERROR_REMOVE_COPY = 10
 ERROR_REMOVE_EXPIRED = 11
 ERROR_REMOVE_OLDEST = 12
-ERROR_UNDEFINED_MSPASS = 13
+ERROR_NO_MSPASS = 13
 
 # Hide the backup command?
 # Probably important for MySQL, where the password
@@ -408,7 +408,7 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
 else:
     if not MSPASS:
         print('--] MSPASS has not been defined')
-        error(ERROR_UNDEFINED_MSPASS)
+        error(ERROR_NO_MSPASS)
 # Check backup types...
 if BACKUP_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY, B_MONTHLY]:
     print('--] Unexpected BACKUP_TYPE (%s)' % BACKUP_TYPE)

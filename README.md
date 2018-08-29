@@ -26,4 +26,21 @@ And the **stable** image with: -
 
     $ IMAGE_TAG=stable docker-compose build
     $ IMAGE_TAG=stable docker-compose push
+
+## Command-line tests
+You could run something like this from the command-line
+to collect a MySQL backup in `/tmp`: -
+
+    $ docker run -e MSHOST=172.17.0.1 \
+        -e MSUSER=root -e MSPASS=my-secret-pw \
+        -v /tmp:/backup informaticsmatters/sql-backup:latest
+
+>   `172.17.01` is typically the default host in the Docker network and MySQL
+    must be listening on this host (see `MYSQL_ROOT_HOST`)
+    
+And this to recover the latest backup: -
+
+    $ docker run -e MSHOST=172.17.0.1 \
+        -e MSUSER=root -e MSPASS=my-secret-pw \
+        -v /tmp:/backup informaticsmatters/sql-recovery:latest
  

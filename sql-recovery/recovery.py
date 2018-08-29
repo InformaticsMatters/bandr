@@ -87,6 +87,9 @@ import sys
 # following Semantic Versioning principles.
 __version__ = '1.1.0'
 
+ERROR_NO_ROOT = 4
+ERROR_NO_MSPASS = 13
+
 # Supported database flavours...
 FLAVOUR_POSTGRESQL = 'postgresql'
 FLAVOUR_MYSQL = 'mysql'
@@ -141,19 +144,6 @@ RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
 # not the base 2 - i.e GBytes rather han GiBytes.
 SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
 
-# Echo configuration...
-print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
-print('# FROM_BACKUP = %s' % FROM_BACKUP)
-print('# PGHOST = %s' % PGHOST)
-print('# PGUSER = %s' % PGUSER)
-HAVE_ADMIN_PASS = False
-if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
-    msg = '(not supplied)'
-    if PGADMINPASS not in ['-']:
-        HAVE_ADMIN_PASS = True
-        msg = '(supplied)'
-    print('# PGADMINPASS = %s' % msg)
-
 
 def pretty_size(number):
     """Returns the number as a pretty number.
@@ -169,6 +159,47 @@ def pretty_size(number):
         float_bytes /= 1000
     return "{0:,.2f} {1:}Bytes".format(float_bytes, SCALE_UNITS[scale_factor])
 
+
+def error(error_no):
+    """Issues an error line (debug information will already be present
+    on earlier log lines) and then exits with a SUCCESS code (to
+    prevent OpenShift restarting the container).
+
+    The method does not return.
+
+    :param error_no: An error number (ideally unique for each error)
+    :type error_no: ``int``
+    """
+    print('--] Encountered unrecoverable ERROR [%s] ... leaving' % error_no)
+    sys.exit(0)
+
+
+# Echo configuration...
+print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
+print('# FROM_BACKUP = %s' % FROM_BACKUP)
+if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
+    print('# PGHOST = %s' % PGHOST)
+    print('# PGUSER = %s' % PGUSER)
+    msg = '(not supplied)'
+    if PGADMINPASS not in ['-']:
+        HAVE_ADMIN_PASS = True
+        msg = '(supplied)'
+    print('# PGADMINPASS = %s' % msg)
+else:
+    print('# MSHOST = %s' % MSHOST)
+    print('# MSPORT = %s' % MSPORT)
+    print('# MSUSER = %s' % MSUSER)
+
+HAVE_ADMIN_PASS = False
+if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
+    msg = '(not supplied)'
+    if PGADMINPASS not in ['-']:
+        HAVE_ADMIN_PASS = True
+        msg = '(supplied)'
+    print('# PGADMINPASS = %s' % msg)
+if not MSPASS:
+    print('--] MSPASS has not been defined')
+    error(ERROR_NO_MSPASS)
 
 # Recover...
 #
@@ -189,7 +220,7 @@ print('--] Hello [%s]' % RECOVERY_START_TIME)
 #####
 if not os.path.isdir(BACKUP_ROOT_DIR):
     print('--] Backup root directory does not exist (%s). Leaving.' % BACKUP_ROOT_DIR)
-    sys.exit(3)
+    error(ERROR_NO_ROOT)
 
 #####
 # 2 #
@@ -219,7 +250,7 @@ print('--] Known backups, most recent first (%s)...' % len(KNOWN_BACKUPS))
 if KNOWN_BACKUPS:
     TOTAL_BACKUP_SIZE = 0
     for KNOWN_BACKUP in sorted(KNOWN_BACKUPS, reverse=True):
-        BACKUP_SIZE = os.path.getsize(KNOWN_BACKUP)
+        BACKUP_SIZE = os.path.getsize(os.path.join(KNOWN_BACKUPS[KNOWN_BACKUP], KNOWN_BACKUP))
         TOTAL_BACKUP_SIZE += BACKUP_SIZE
         print('    %s (%s)' % (KNOWN_BACKUP, pretty_size(BACKUP_SIZE)))
         if not LATEST_BACKUP:
@@ -233,7 +264,7 @@ print('--] Latest backup: %s' % LATEST_BACKUP)
 # 3 #
 #####
 if FROM_BACKUP in [B_NONE]:
-    print('--] FROM_BACKUP is NONE. Nothing to do')
+    print('--] FROM_BACKUP is NONE. Nothing to do.')
     sys.exit(0)
 
 #####
