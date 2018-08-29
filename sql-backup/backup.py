@@ -290,10 +290,14 @@ BACKUP_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_TYPE)
 BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 
 # Backup commands for the various database flavours...
+#
+# A list of MySQL 5.7 options can be found at
+# https://dev.mysql.com/doc/refman/5.7/en/mysqldump.html
 BACKUP_COMMANDS= {
     FLAVOUR_POSTGRESQL: 'pg_dumpall --username=%s --no-password --clean'
                         ' | gzip > %s' % (PGUSER, BACKUP),
-    FLAVOUR_MYSQL: 'mysqldump --all-databases --compact --host=%s --port=%s'
+    FLAVOUR_MYSQL: 'mysqldump --all-databases --compact'
+                   ' --host=%s --port=%s'
                    ' --user=%s --password="%s" | gzip > %s'
                    % (MSHOST, MSPORT, MSUSER, MSPASS, BACKUP)
 }
