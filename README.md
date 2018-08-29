@@ -12,6 +12,10 @@ environment variables.
 
 Both images are available on the Docker hub.
 
+>   Backup do not work for MySQL 8 at the moment. In MySQL 8.0,
+    **caching_sha2_password** is the default authentication plugin
+    rather than **mysql_native_password**.
+
 >   For a detailed description of each utility refer to `backup.py` or
     `recovery.py`, where the operation and supported environment variables
     are explained.
@@ -27,7 +31,12 @@ And the **stable** image with: -
     $ IMAGE_TAG=stable docker-compose build
     $ IMAGE_TAG=stable docker-compose push
 
-## Command-line tests
+## Command-line tests (MySQL)
+You could start a simple MySQL 8.0 docker container with: -
+
+    $ docker run -e MYSQL_ROOT_PASSWORD=my-secret-pw \
+        -e MYSQL_ROOT_HOST=172.17.0.1 -p 3306:3306 -d mysql:8.0.12
+ 
 You could run something like this from the command-line
 to collect a MySQL backup in `/tmp`: -
 

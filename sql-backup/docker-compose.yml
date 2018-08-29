@@ -17,7 +17,7 @@ version: '3.6'
 
 services:
 
-  postgresql-backup:
+  sql-backup:
     build:
       context: .
     image: "informaticsmatters/sql-backup:${IMAGE_TAG:-latest}"

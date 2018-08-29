@@ -17,7 +17,7 @@ version: '3.6'
 
 services:
 
-  postgresql-recovery:
+  sql-recovery:
     build:
       context: .
     image: "informaticsmatters/sql-recovery:${IMAGE_TAG:-latest}"
