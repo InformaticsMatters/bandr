@@ -32,10 +32,10 @@ And the **stable** image with: -
     $ IMAGE_TAG=stable docker-compose push
 
 ## Command-line tests (MySQL)
-You could start a simple MySQL 8.0 docker container with: -
+You could start a simple MySQL 5.7 docker container with: -
 
     $ docker run -e MYSQL_ROOT_PASSWORD=my-secret-pw \
-        -e MYSQL_ROOT_HOST=172.17.0.1 -p 3306:3306 -d mysql:8.0.12
+        -e MYSQL_ROOT_HOST=172.17.0.1 -p 3306:3306 -d mysql:5.7.23
  
 You could run something like this from the command-line
 to collect a MySQL backup in `/tmp`: -

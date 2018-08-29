@@ -302,7 +302,7 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     print('--] Unpack failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
     if COMPLETED_PROCESS.stderr:
         print('--] stderr follows...')
-        print(COMPLETED_PROCESS.stderr.decode("utf-8"))
+        print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
     # Remove the current backup
     os.remove(BACKUP)
     print('--] Leaving')
