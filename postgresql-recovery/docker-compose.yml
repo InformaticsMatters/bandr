@@ -20,5 +20,5 @@ services:
   postgresql-recovery:
     build:
       context: .
-    image: "informaticsmatters/postgresql-recovery:${IMAGE_TAG:-latest}"
+    image: "informaticsmatters/sql-recovery:${IMAGE_TAG:-latest}"
     container_name: postgresql-recovery

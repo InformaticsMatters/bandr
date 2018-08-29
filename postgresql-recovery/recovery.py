@@ -7,6 +7,10 @@ Expects Python 3 (recursive glob).
 The backup directory (BACKUP_ROOT_DIR) is expected to have
 been mounted as a volume in the container image.
 
+Recovery supports both PostgreSQL and MySQL backups.
+If you're using it for PostgreSQL use the PG* environment variables,
+if you're using it for MySQL use the MS* variables.
+
 A number of environment variables control this utility: -
 
 -   FROM_BACKUP
@@ -22,10 +26,12 @@ A number of environment variables control this utility: -
     provided time will be used as a source of the recovery.
     (default 'NONE')
 
+Variables for PostgreSQL recovery...
+
 -   PGHOST
 
     The Postgres database Hostname.
-    (default 'postgres')
+    (default '')
 
 -   PGUSER
 
@@ -41,9 +47,33 @@ A number of environment variables control this utility: -
     the default .pgpass file before the recovery begins.
     (default '-')
 
+Variables for MySQL recovery...
+
+-   MSHOST
+
+    The MySQL host address.
+    (default ''). You must either define
+    PGHOST for PostgreSQL recovery (see above)
+    or MSHOST or MySQL backups.
+
+-   MSPORT
+
+    The MySQL database port.
+    (default 3306).
+
+-   MSUSER
+
+    The MySQL database root user.
+    Defined if backing up MySQL.
+
+-   MSPASS
+
+    The MySQL database root user password.
+    Defined if backing up MySQL.
+
 Alan Christie
 Informatics Matters
-July 2018
+August 2018
 """
 
 from datetime import datetime
@@ -55,7 +85,11 @@ import sys
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '1.0.1'
+__version__ = '1.1.0'
+
+# Supported database flavours...
+FLAVOUR_POSTGRESQL = 'postgresql'
+FLAVOUR_MYSQL = 'mysql'
 
 # Alternatives for Backup
 B_NONE = 'NONE'
@@ -69,10 +103,16 @@ print('# recovery.__version__ = %s' % __version__)
 # i.e. '2018-06-25T21:05:07Z'
 FROM_BACKUP = os.environ.get('FROM_BACKUP', 'LATEST').upper()
 # Extract configuration from the environment.
-PGHOST = os.environ.get('PGHOST', 'postgres')
+# Postgres material...
+PGHOST = os.environ.get('PGHOST', '')
 PGUSER = os.environ.get('PGUSER', 'postgres')
 PGADMINPASS = os.environ.get('PGADMINPASS', '-')
 HOME = os.environ['HOME']
+# MySQL material...
+MSHOST = os.environ.get('MSHOST', '')
+MSPORT = os.environ.get('MSPORT', '3306')
+MSUSER = os.environ.get('MSUSER', '')
+MSPASS = os.environ.get('MSPASS', '')
 
 # The backup config.
 # The root dir, below which you're likely to find
@@ -80,21 +120,39 @@ HOME = os.environ['HOME']
 BACKUP_ROOT_DIR = '/backup'
 BACKUP_FILE_PREFIX = 'backup'
 
+# Recovery commands for the various database flavours...
+RECOVERY_COMMANDS= {
+    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -f dumpall.sql template1'
+                        ' > sql.out' % (PGHOST, PGUSER),
+    FLAVOUR_MYSQL: 'mysql --host=%s --port=%s'
+                   ' --user=%s --password="%s" < dumpall.sql > sql.out'
+                   % (MSHOST, MSPORT, MSUSER, MSPASS)
+}
+
+# What 'flavour' of database do we expect to recover?
+# We currently support Postgres and MySQL.
+# The flavour is determined by the environment variables that we find.
+# If PGHOST has been defined then we'll expect a Postgres database
+DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL if PGHOST else FLAVOUR_MYSQL
+RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
+
 # Units for bytes, KBytes etc.
 # Used in pretty_size() and expected to be the base-10 units
 # not the base 2 - i.e GBytes rather han GiBytes.
 SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
 
 # Echo configuration...
+print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
 print('# FROM_BACKUP = %s' % FROM_BACKUP)
 print('# PGHOST = %s' % PGHOST)
 print('# PGUSER = %s' % PGUSER)
 HAVE_ADMIN_PASS = False
-msg = '(not supplied)'
-if PGADMINPASS not in ['-']:
-    HAVE_ADMIN_PASS = True
-    msg = '(supplied)'
-print('# PGADMINPASS = %s' % msg)
+if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
+    msg = '(not supplied)'
+    if PGADMINPASS not in ['-']:
+        HAVE_ADMIN_PASS = True
+        msg = '(supplied)'
+    print('# PGADMINPASS = %s' % msg)
 
 
 def pretty_size(number):
@@ -136,11 +194,11 @@ if not os.path.isdir(BACKUP_ROOT_DIR):
 #####
 # 2 #
 #####
-# Replace 'default' .pgpass?
+# If postgreSQL do we replace the 'default' .pgpass?
 # If the user's supplied a password using PGADMINPASS
 # then replace the current (default) .pgapss file with
 # with a single wildcard line using the supplied value.
-if HAVE_ADMIN_PASS:
+if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL] and HAVE_ADMIN_PASS:
     pgpass_file_name = '%s/.pgpass' % HOME
     print('--] Replacing "%s" (Admin password supplied)' % pgpass_file_name)
     pgpass_file = open(pgpass_file_name, 'w')
@@ -201,7 +259,7 @@ if not BACKUP_FILE:
     sys.exit(0)
 
 # Unpack the backup to reveal the SQL
-# and then use this file in the psql recovery command.
+# and then use this file in the recovery command.
 print('--] Recovering from %s...' % BACKUP_FILE)
 
 UNPACK_CMD = 'gunzip -c %s > dumpall.sql' % BACKUP_FILE
@@ -219,12 +277,11 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     print('--] Leaving')
     sys.exit(0)
 
-RECOVERY_CMD = 'psql -q -h %s -U %s -f dumpall.sql template1 > psql.out' % (PGHOST, PGUSER)
 print("    $", RECOVERY_CMD)
 COMPLETED_PROCESS = subprocess.run(RECOVERY_CMD, shell=True, stderr=subprocess.PIPE)
 
 # Check subprocess exit code and stderr
-# We should treat psql's stderr as a warning if the exit code is zero.
+# We should treat stderr as a warning if the exit code is zero.
 if COMPLETED_PROCESS.stderr:
     print('--] Warning, lines written to stderr')
     print('--] stderr follows...')

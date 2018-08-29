@@ -19,6 +19,8 @@ The time of the backup is the approximate time this utility is executed,
 and is the approximate time of the start of the backup process.
 
 The backup supports both PostgreSQL and MySQL backups.
+If you're using it for PostreSQL use the PG* environment variables,
+if you're using it for MySQL use the MS* variables.
 
 A number of environment variables control this image's behaviour: -
 
@@ -76,6 +78,8 @@ A number of environment variables control this image's behaviour: -
     exits immediately after completing the backup.
     (default '0')
 
+Variables for PostgreSQL backups...
+
 -   PGHOST
 
     The Postgres database Hostname.
@@ -109,12 +113,14 @@ A number of environment variables control this image's behaviour: -
     If you use this variable using PGPASSFILE is pointless.
     (default '-')
 
+Variables for MySQL backups...
+
 -   MSHOST
 
     The MySQL host address.
     Used only for 'hourly' backup types
     (default ''). You must either define
-    PGHOST for PostgreSQL backups (se above)
+    PGHOST for PostgreSQL backups (see above)
     or MSHOST or MySQL backups.
 
 -   MSPORT
@@ -203,7 +209,7 @@ you simply define volumes and volumeMounts for the ConfigMap. A bit like this: -
 
 Alan Christie
 Informatics Matters
-July 2018
+August 2018
 """
 
 import glob
@@ -449,7 +455,7 @@ if BACKUP_TYPE == B_HOURLY:
     #####
     # 3 #
     #####
-    # If postgreSQL do we replace 'default' .pgpass?
+    # If postgreSQL do we replace the 'default' .pgpass?
     # If the user's supplied a password using PGADMINPASS
     # then replace the current (default) .pgapss file with
     # with a single wildcard line using the supplied value.]
