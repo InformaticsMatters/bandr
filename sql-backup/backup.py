@@ -293,9 +293,8 @@ BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 BACKUP_COMMANDS= {
     FLAVOUR_POSTGRESQL: 'pg_dumpall --username=%s --no-password --clean'
                         ' | gzip > %s' % (PGUSER, BACKUP),
-    FLAVOUR_MYSQL: 'mysqldump --all-databases --host=%s --port=%s'
-                   ' --single-transaction --user=%s --password="%s" '
-                   ' --skip-lock-tables | gzip > %s'
+    FLAVOUR_MYSQL: 'mysqldump --all-databases --compact --host=%s --port=%s'
+                   ' --user=%s --password="%s" | gzip > %s'
                    % (MSHOST, MSPORT, MSUSER, MSPASS, BACKUP)
 }
 
