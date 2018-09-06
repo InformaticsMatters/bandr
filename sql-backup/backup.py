@@ -409,7 +409,7 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
         print('--] PGPASSFILE (%s) does not exist' % PGPASSFILE)
         error(ERROR_NO_PGPASS)
 else:
-    if not MSPASS:
+    if BACKUP_TYPE in [B_HOURLY] and not MSPASS:
         print('--] MSPASS has not been defined')
         error(ERROR_NO_MSPASS)
 # Check backup types...
