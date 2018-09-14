@@ -675,8 +675,14 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
 
     # rsync
     #
-    RSYNC_CMD = 'rsync -Aav %s %s@%s:%s' % (BACKUP_ROOT_DIR,
-                                            RSYNC_USER, RSYNC_HOST, RSYNC_PATH)
+    # --delete ensures that any file that exists inm the remote directory
+    # that is no longer in the backup drive is deleted - so the target
+    # is a copy of the source. If we don't delete then the target directory
+    # will just accumulate backup files that we've deleted locally.
+    RSYNC_CMD = 'rsync -Aav %s %s@%s:%s --delete' % (BACKUP_ROOT_DIR,
+                                                     RSYNC_USER,
+                                                     RSYNC_HOST,
+                                                     RSYNC_PATH)
     RSYNC_START_TIME = datetime.now()
     print('--] Running rsync [%s]' % RSYNC_START_TIME)
     if not HIDE_RSYNC_COMMAND:
