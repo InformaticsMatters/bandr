@@ -2,8 +2,16 @@
 
 """A simple module to create and manage backups.
 
-The backup directory (BACKUP_ROOT_DIR) is expected to have been mounted as a volume
-in the container image. Without this volume the backup will exit with an error.
+The image also has additional rsync capability so that the backup directory,
+at the end of each hourly run synchronises the backup volume
+with a user-designated remote volume.
+
+The backup directory (BACKUP_ROOT_DIR) is expected to have been mounted
+as a volume in the container image. Without this volume the backup will exit
+cleanly but with an error.
+
+To avoid continually re-spawning nothing causes this container image
+to return a non-zero exit code.
 
 See https://www.postgresql.org/docs/9.2/static/app-pg-dumpall.html
 
@@ -138,6 +146,35 @@ Variables for MySQL backups...
     The MySQL database root user password.
     Defined if backing up MySQL.
 
+Variables for rsync remove copying support.
+If the RSYNC_HOST variable is set each successful hourly backup
+will result in an rsync of the backup volume to
+a remotely location designated by the related environment variables.
+
+-   RSYNC_HOST
+
+    The hostname of the rsync destination.
+    If set backups are synchronised to this server in the directory
+    identified by RSYNC_TGT_PATH using the RSYNC_USER and RSYNC_PASS.
+    (default unset)
+
+-   RSYNC_USER
+
+    The username of an rsync user.
+    If set backups are synchronised to the directory.
+    (default unset)
+
+-   RSYNC_PASS
+
+    The rsync user's password and the password used with sshpass.
+    This has to be set if RSYNC_USER is set.
+    (default unset)
+
+-   RSYNC_PATH
+
+    The rsync target path.
+    (default unset)
+
 There are four values for BACKUP_TYPE: -
 
 - hourly    Typically the BACKUP_COUNT is 24.
@@ -241,11 +278,16 @@ ERROR_REMOVE_COPY = 10
 ERROR_REMOVE_EXPIRED = 11
 ERROR_REMOVE_OLDEST = 12
 ERROR_NO_MSPASS = 13
+ERROR_MISSING_RSYNC_USER = 14
+ERROR_MISSING_RSYNC_PASS = 15
+ERROR_MISSING_RSYNC_PATH = 16
+ERROR_RSYNC_FAILED = 17
 
-# Hide the backup command?
+# Hide the backup/rsync commands?
 # Probably important for MySQL, where the password
 # is provided as apart of the command.
 HIDE_BACKUP_COMMAND = True
+HIDE_RSYNC_COMMAND = True
 
 # Supported database flavours...
 FLAVOUR_POSTGRESQL = 'postgresql'
@@ -395,6 +437,12 @@ def error(error_no):
 # For all backup types...
 #
 # 6. Limit the files in the current backup directory
+#
+# Finally, if it's an HOURLY backup and RSYNC_HOST is set...
+#
+# 7. If RSYNC_HOST is set, rsync the backup volume to
+#    the named path.
+
 
 BACKUP_START_TIME = datetime.now()
 print('--] Hello [%s]' % BACKUP_START_TIME)
@@ -590,5 +638,46 @@ else:
 if BACKUP_PRE_EXIT_SLEEP_M > 0:
     print('--] Sleeping (BACKUP_PRE_EXIT_SLEEP_M=%s)...' % BACKUP_PRE_EXIT_SLEEP_M)
     time.sleep(BACKUP_PRE_EXIT_SLEEP_M * 60)
+
+#####
+# 7 #
+#####
+
+RSYNC_HOST = os.environ.get('RSYNC_HOST', '')
+if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
+
+    RSYNC_USER = os.environ.get('RSYNC_USER', '')
+    RSYNC_PASS = os.environ.get('RSYNC_PASS', '')
+    RSYNC_PATH = os.environ.get('RSYNC_PATH', '')
+    if not RSYNC_USER:
+        error(ERROR_MISSING_RSYNC_USER)
+    elif not RSYNC_PASS:
+        error(ERROR_MISSING_RSYNC_PASS)
+    elif not RSYNC_PATH:
+        error(ERROR_MISSING_RSYNC_PATH)
+
+    RSYNC_CMD = 'rsync -Aav %s %s@%s:%s' % (BACKUP_ROOT_DIR,
+                                            RSYNC_USER, RSYNC_HOST, RSYNC_PATH)
+    RSYNC_START_TIME = datetime.now()
+    print('--] Running rsync [%s]' % RSYNC_START_TIME)
+    if not HIDE_RSYNC_COMMAND:
+        print("    $", RSYNC_CMD)
+
+    # Now prefix with the password details using sshpass...
+    RSYNC_CMD = 'sshpass -p "%s" %s' % (RSYNC_PASS, RSYNC_CMD)
+    COMPLETED_PROCESS = subprocess.run(RSYNC_CMD, shell=True,
+                                       stderr=subprocess.PIPE)
+
+    RSYNC_END_TIME = datetime.now()
+    print('--] rsync finished [%s]' % RSYNC_END_TIME)
+    ELAPSED_TIME = RSYNC_END_TIME - RSYNC_START_TIME
+    print('--] Elapsed time %s' % ELAPSED_TIME)
+
+    if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
+        print('--] rsync failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+        if COMPLETED_PROCESS.stderr:
+            print('--] stderr follows...')
+            print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
+        error(ERROR_RSYNC_FAILED)
 
 print('--] Goodbye')
