@@ -282,6 +282,7 @@ ERROR_MISSING_RSYNC_USER = 14
 ERROR_MISSING_RSYNC_PASS = 15
 ERROR_MISSING_RSYNC_PATH = 16
 ERROR_RSYNC_FAILED = 17
+ERROR_KEYSCAN_FAILED = 18
 
 # Hide the backup/rsync commands?
 # Probably important for MySQL, where the password
@@ -656,6 +657,24 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
     elif not RSYNC_PATH:
         error(ERROR_MISSING_RSYNC_PATH)
 
+    # Update known_hosts
+    #
+    # Get the known hosts populated with the server host key.
+    # See https://stackoverflow.com/questions/44337659/host-key-verification-failed-with-sshpass-rsync
+    print('--] Running ssh-keyscan...')
+    CMD = 'ssh-keyscan %s >> ~/.ssh/known_hosts' % RSYNC_HOST
+    COMPLETED_PROCESS = subprocess.run(CMD, shell=True,
+                                       stderr=subprocess.PIPE)
+    if COMPLETED_PROCESS.returncode != 0:
+        print('--] Keyscan failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+        if COMPLETED_PROCESS.stderr:
+            print('--] stderr follows...')
+            print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
+        error(ERROR_KEYSCAN_FAILED)
+    print('--] Done')
+
+    # rsync
+    #
     RSYNC_CMD = 'rsync -Aav %s %s@%s:%s' % (BACKUP_ROOT_DIR,
                                             RSYNC_USER, RSYNC_HOST, RSYNC_PATH)
     RSYNC_START_TIME = datetime.now()

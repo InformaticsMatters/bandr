@@ -18,9 +18,11 @@ ENV TZ=UTC
 
 # Populate the image...
 COPY backup.py ${APP_ROOT}/
-RUN chmod 755 ${APP_ROOT}/backup.py
 COPY pgpass ${HOME}/.pgpass
-RUN chmod 600 ${HOME}/.pgpass
+RUN chmod 755 ${APP_ROOT}/backup.py && \
+    chmod 600 ${HOME}/.pgpass && \
+    mkdir ${HOME}/.ssh && \
+    chmod 700 ${HOME}/.ssh
 
 # Force the binary layer of the stdout and stderr streams
 # to be unbuffered
