@@ -25,7 +25,7 @@ labels:
 parameters:
 
 - name: BACKUP_IMAGE
-  value: 'informaticsmatters/postgresql-backup:stable'
+  value: 'informaticsmatters/sql-backup:stable'
 
 objects:
 
@@ -53,7 +53,7 @@ objects:
               name: postgresql-backup
               imagePullPolicy: Always
               volumeMounts:
-              - name: postgresql-backup-data
+              - name: backup-data
                 mountPath: /backup
 
               env:

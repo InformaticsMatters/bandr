@@ -17,6 +17,8 @@ parameters:
 - name: STORAGE_CLASS
   value: glusterfs-storage
 
+- name: BACKUP_VOLUME_NAME
+  value: backup-claim
 - name: BACKUP_VOLUME_SIZE
   value: 125Gi
 
@@ -25,7 +27,7 @@ objects:
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    name: backup-claim
+    name: ${BACKUP_VOLUME_NAME}
     labels:
       application: backup
   spec:
