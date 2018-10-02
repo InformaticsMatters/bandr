@@ -260,7 +260,7 @@ from datetime import datetime
 # The module version.
 # Please adjust on every change
 # following Semantic Versioning principles.
-__version__ = '3.1.0'
+__version__ = '3.1.1'
 
 # Expose our version...
 print('# backup.__version__ = %s' % __version__)
@@ -336,10 +336,14 @@ BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 #
 # A list of MySQL 5.7 options can be found at
 # https://dev.mysql.com/doc/refman/5.7/en/mysqldump.html
+#
+# Note: With MySQL resist the temptation to use '--compact'
+#       as this does not add the command to disable foreign-key checks
+#       (an important property of a dump)
 BACKUP_COMMANDS= {
     FLAVOUR_POSTGRESQL: 'pg_dumpall --username=%s --no-password --clean'
                         ' | gzip > %s' % (PGUSER, BACKUP),
-    FLAVOUR_MYSQL: 'mysqldump --all-databases --compact'
+    FLAVOUR_MYSQL: 'mysqldump --all-databases'
                    ' --host=%s --port=%s'
                    ' --user=%s --password="%s" | gzip > %s'
                    % (MSHOST, MSPORT, MSUSER, MSPASS, BACKUP)
