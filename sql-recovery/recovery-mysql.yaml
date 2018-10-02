@@ -1,6 +1,6 @@
 ---
 
-# Example PostgreSQL database recovery deployments.
+# Example MySQL database recovery deployment.
 #
 # Used in conjunction with a backup this `Job` template
 # illustrates how to recover a backup against
