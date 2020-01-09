@@ -1,4 +1,4 @@
-FROM python:3.7.0-alpine3.8
+FROM python:3.8.1-alpine3.11
 
 ENV APP_ROOT /code
 ENV HOME /root

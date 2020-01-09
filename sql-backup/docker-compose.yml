@@ -10,8 +10,8 @@
 #
 # i.e.: -
 #
-#   IMAGE_TAG=stable docker-compose build
-#   IMAGE_TAG=stable docker-compose push
+#   IMAGE_TAG=2020.1 docker-compose build
+#   IMAGE_TAG=2020.1 docker-compose push
 
 version: '3.6'
 

@@ -1,11 +1,12 @@
-FROM python:3.7.0-alpine3.8
+FROM python:3.8.1-alpine3.11
 
 ENV APP_ROOT /code
 ENV HOME /root
 WORKDIR ${APP_ROOT}
 
 # Install stuff including PostgreSQL and MySQL clients
-RUN apk add --no-cache postgresql-client \
+RUN apk add --no-cache \
+        postgresql-client \
         mysql-client \
         tzdata rsync openssh && \
     rm -rf /var/cache/apk/*
