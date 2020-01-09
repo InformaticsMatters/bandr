@@ -257,14 +257,6 @@ import shutil
 import time
 from datetime import datetime
 
-# The module version.
-# Please adjust on every change
-# following Semantic Versioning principles.
-__version__ = '3.1.1'
-
-# Expose our version...
-print('# backup.__version__ = %s' % __version__)
-
 ERROR_NO_PGPASS = 1
 ERROR_UNEXPECTED_BU_TYPE = 2
 ERROR_UNEXPECTED_PBU_TYPE = 3

@@ -82,11 +82,6 @@ import os
 import subprocess
 import sys
 
-# The module version.
-# Please adjust on every change
-# following Semantic Versioning principles.
-__version__ = '1.1.0'
-
 ERROR_NO_ROOT = 4
 ERROR_NO_MSPASS = 13
 
@@ -97,9 +92,6 @@ FLAVOUR_MYSQL = 'mysql'
 # Alternatives for Backup
 B_NONE = 'NONE'
 B_LATEST = 'LATEST'
-
-# Expose our version...
-print('# recovery.__version__ = %s' % __version__)
 
 # The backup time (NONE by default).
 # This is the time from the backup filename,
@@ -124,7 +116,7 @@ BACKUP_ROOT_DIR = '/backup'
 BACKUP_FILE_PREFIX = 'backup'
 
 # Recovery commands for the various database flavours...
-RECOVERY_COMMANDS= {
+RECOVERY_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -f dumpall.sql template1'
                         ' > sql.out' % (PGHOST, PGUSER),
     FLAVOUR_MYSQL: 'mysql --host=%s --port=%s'
@@ -177,6 +169,7 @@ def error(error_no):
 # Echo configuration...
 print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
 print('# FROM_BACKUP = %s' % FROM_BACKUP)
+HAVE_ADMIN_PASS = False
 if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
     print('# PGHOST = %s' % PGHOST)
     print('# PGUSER = %s' % PGUSER)
@@ -190,16 +183,12 @@ else:
     print('# MSPORT = %s' % MSPORT)
     print('# MSUSER = %s' % MSUSER)
 
-HAVE_ADMIN_PASS = False
-if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
-    msg = '(not supplied)'
-    if PGADMINPASS not in ['-']:
-        HAVE_ADMIN_PASS = True
-        msg = '(supplied)'
-    print('# PGADMINPASS = %s' % msg)
-if not MSPASS:
-    print('--] MSPASS has not been defined')
-    error(ERROR_NO_MSPASS)
+if DATABASE_FLAVOUR in [FLAVOUR_MYSQL]:
+    if not MSPASS:
+        print('--] MSPASS has not been defined')
+        error(ERROR_NO_MSPASS)
+    else:
+        print('# MSPASS = (supplied))')
 
 # Recover...
 #
