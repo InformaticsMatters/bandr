@@ -244,9 +244,13 @@ you simply define volumes and volumeMounts for the ConfigMap. A bit like this: -
         name: postgresql-pgpass
         defaultMode: 0600
 
+A termination message (success or failure) is written to the file defined
+by TERMINATION_LOG (i.e. /dev/termination-log, the default location expected
+by Kubernetes).
+
 Alan Christie
 Informatics Matters
-August 2018
+April 2020
 """
 
 import glob
@@ -256,6 +260,8 @@ import subprocess
 import shutil
 import time
 from datetime import datetime
+
+TERMINATION_LOG = '/dev/termination-log'
 
 ERROR_NO_PGPASS = 1
 ERROR_UNEXPECTED_BU_TYPE = 2
@@ -397,6 +403,17 @@ def pretty_size(number):
     return "{0:,.2f} {1:}Bytes".format(float_bytes, SCALE_UNITS[scale_factor])
 
 
+def write_termination_log(message):
+    """Write a message (typically a short message) to the termination log,
+    normally picked-up in a Kubernetes environment.
+
+    :param message: A text message to write, a new-line is added
+    :type message: ``str``
+    """
+    with open(TERMINATION_LOG, 'w') as t_log:
+        t_log.write(message + '\n')
+
+
 def error(error_no):
     """Issues an error line (debug information will already be present
     on earlier log lines) and then exits with a SUCCESS code (to
@@ -407,7 +424,9 @@ def error(error_no):
     :param error_no: An error number (ideally unique for each error)
     :type error_no: ``int``
     """
-    print('--] Encountered unrecoverable ERROR [%s] ... leaving' % error_no)
+    message = 'Encountered unrecoverable ERROR [%s] ... leaving' % error_no
+    print('--] %s' % message)
+    write_termination_log(message)
     sys.exit(0)
 
 
@@ -701,4 +720,5 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
             print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
         error(ERROR_RSYNC_FAILED)
 
+write_termination_log('Success (UNEXPIRED_BACKUPS=%s)' % len(UNEXPIRED_BACKUPS))
 print('--] Goodbye')
