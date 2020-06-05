@@ -26,6 +26,14 @@ A number of environment variables control this utility: -
     provided time will be used as a source of the recovery.
     (default 'NONE')
 
+Variables relating to extended features...
+
+-   DATABASE
+
+    If set only this database will be restored.
+    If undefined a complete recovery of the server (all databases)
+    will be performed.
+
 Variables for PostgreSQL recovery...
 
 -   PGHOST
@@ -73,7 +81,7 @@ Variables for MySQL recovery...
 
 Alan Christie
 Informatics Matters
-August 2018
+June 2020
 """
 
 from datetime import datetime
@@ -97,6 +105,8 @@ B_LATEST = 'LATEST'
 # This is the time from the backup filename,
 # i.e. '2018-06-25T21:05:07Z'
 FROM_BACKUP = os.environ.get('FROM_BACKUP', 'LATEST').upper()
+# A specific database?
+DATABASE = os.environ.get('DATABASE', '')
 # Extract configuration from the environment.
 # Postgres material...
 PGHOST = os.environ.get('PGHOST', '')
@@ -123,13 +133,25 @@ RECOVERY_COMMANDS = {
                    ' --user=%s --password="%s" < dumpall.sql > sql.out'
                    % (MSHOST, MSPORT, MSUSER, MSPASS)
 }
+# Recovery commands (for a single database).
+# Check comments above in case they're relevant here.
+RECOVERY_COMMANDS_ONE_DB = {
+    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -f dumpall.sql %s'
+                        ' > sql.out' % (PGHOST, PGUSER, DATABASE),
+    FLAVOUR_MYSQL: 'mysql --host=%s --port=%s'
+                   ' --user=%s --password="%s" < dumpall.sql > sql.out'
+                   % (MSHOST, MSPORT, MSUSER, MSPASS)
+}
 
 # What 'flavour' of database do we expect to recover?
 # We currently support Postgres and MySQL.
 # The flavour is determined by the environment variables that we find.
 # If PGHOST has been defined then we'll expect a Postgres database
 DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL if PGHOST else FLAVOUR_MYSQL
-RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
+if DATABASE:
+    RECOVERY_CMD = RECOVERY_COMMANDS_ONE_DB[DATABASE_FLAVOUR]
+else:
+    RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
 
 # Units for bytes, KBytes etc.
 # Used in pretty_size() and expected to be the base-10 units
@@ -169,6 +191,10 @@ def error(error_no):
 # Echo configuration...
 print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
 print('# FROM_BACKUP = %s' % FROM_BACKUP)
+if DATABASE:
+    print('# DATABASE = %s' % DATABASE)
+else:
+    print('# DATABASE = (unspecified - recovering all)')
 HAVE_ADMIN_PASS = False
 if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
     print('# PGHOST = %s' % PGHOST)
