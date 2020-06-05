@@ -86,6 +86,14 @@ A number of environment variables control this image's behaviour: -
     exits immediately after completing the backup.
     (default '0')
 
+Variables relating to extended features...
+
+-   DATABASE
+
+    If set only this database will be backed-up.
+    If undefined a complete backup of the server (all databases)
+    will be performed.
+
 Variables for PostgreSQL backups...
 
 -   PGHOST
@@ -250,7 +258,7 @@ by Kubernetes).
 
 Alan Christie
 Informatics Matters
-April 2020
+June 2020
 """
 
 import glob
@@ -306,6 +314,8 @@ BACKUP_COUNT = int(os.environ.get('BACKUP_COUNT', '24'))
 BACKUP_PRIOR_TYPE = os.environ.get('BACKUP_PRIOR_TYPE', B_HOURLY).lower()
 BACKUP_PRIOR_COUNT = int(os.environ.get('BACKUP_PRIOR_COUNT', '24'))
 BACKUP_PRE_EXIT_SLEEP_M = int(os.environ.get('BACKUP_PRE_EXIT_SLEEP_M', '0'))
+# A specific database?
+DATABASE = os.environ.get('DATABASE', '')
 # Extract configuration from the environment.
 # Postgres material...
 PGHOST = os.environ.get('PGHOST', '')
@@ -330,7 +340,7 @@ BACKUP_PRIOR_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_PRIOR_TYPE)
 BACKUP_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_TYPE)
 BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 
-# Backup commands for the various database flavours...
+# Backup commands (for all databases) for the various database flavours...
 #
 # A list of MySQL 5.7 options can be found at
 # https://dev.mysql.com/doc/refman/5.7/en/mysqldump.html
@@ -338,13 +348,23 @@ BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 # Note: With MySQL resist the temptation to use '--compact'
 #       as this does not add the command to disable foreign-key checks
 #       (an important property of a dump)
-BACKUP_COMMANDS= {
+BACKUP_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'pg_dumpall --username=%s --no-password --clean'
                         ' | gzip > %s' % (PGUSER, BACKUP),
     FLAVOUR_MYSQL: 'mysqldump --all-databases'
                    ' --host=%s --port=%s'
                    ' --user=%s --password="%s" | gzip > %s'
                    % (MSHOST, MSPORT, MSUSER, MSPASS, BACKUP)
+}
+# Backup commands (for a single database).
+# Check comments above in case they're relevant here.
+BACKUP_COMMANDS_ONE_DB = {
+    FLAVOUR_POSTGRESQL: 'pg_dump --username=%s --no-password --clean %s'
+                        ' | gzip > %s' % (PGUSER, DATABASE, BACKUP),
+    FLAVOUR_MYSQL: 'mysqldump'
+                   ' --host=%s --port=%s'
+                   ' --user=%s --password="%s" --databases %s | gzip > %s'
+                   % (MSHOST, MSPORT, MSUSER, MSPASS, DATABASE, BACKUP)
 }
 
 # What 'flavour' of database do we expect to be backing up?
@@ -355,7 +375,10 @@ BACKUP_COMMANDS= {
 # This really only applies to B_HOURLY backups, as that's the only
 # type that actually creates new backup files.
 DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL if PGHOST else FLAVOUR_MYSQL
-BACKUP_CMD = BACKUP_COMMANDS[DATABASE_FLAVOUR]
+if DATABASE:
+    BACKUP_CMD = BACKUP_COMMANDS_ONE_DB[DATABASE_FLAVOUR]
+else:
+    BACKUP_CMD = BACKUP_COMMANDS[DATABASE_FLAVOUR]
 
 # Units for bytes, KBytes etc.
 # Used in pretty_size() and expected to be the base-10 units
@@ -372,6 +395,10 @@ if BACKUP_TYPE not in [B_HOURLY]:
     print('# BACKUP_PRIOR_TYPE = %s' % BACKUP_PRIOR_TYPE)
     print('# BACKUP_PRIOR_COUNT = %s' % BACKUP_PRIOR_COUNT)
 print('# BACKUP_PRE_EXIT_SLEEP_M = %s' % BACKUP_PRE_EXIT_SLEEP_M)
+if DATABASE:
+    print('# DATABASE = %s' % DATABASE)
+else:
+    print('# DATABASE = (unspecified - backing up all)')
 if BACKUP_TYPE in [B_HOURLY]:
     if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
         print('# PGHOST = %s' % PGHOST)
