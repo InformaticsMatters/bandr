@@ -1,4 +1,4 @@
-FROM python:3.8.3-alpine3.12
+FROM python:3.8.5-alpine3.12
 
 ENV APP_ROOT /code
 ENV HOME /root
@@ -19,7 +19,9 @@ ENV TZ=UTC
 # Populate the image...
 COPY backup.py ${APP_ROOT}/
 COPY pgpass ${HOME}/.pgpass
-RUN chmod 755 ${APP_ROOT}/backup.py && \
+RUN /usr/local/bin/python -m pip install --upgrade pip && \
+    pip install boto3==1.14.32 && \
+    chmod 755 ${APP_ROOT}/backup.py && \
     chmod 600 ${HOME}/.pgpass && \
     mkdir ${HOME}/.ssh && \
     chmod 700 ${HOME}/.ssh

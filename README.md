@@ -12,7 +12,7 @@ environment variables.
 
 Both images are available on the Docker hub.
 
->   Backup do not work for MySQL 8 at the moment. In MySQL 8.0,
+>   Backup does not work for MySQL 8 at the moment. In MySQL 8.0,
     **caching_sha2_password** is the default authentication plugin
     rather than **mysql_native_password**. See
     https://stackoverflow.com/questions/49963383/authentication-plugin-caching-sha2-password
@@ -21,8 +21,9 @@ Both images are available on the Docker hub.
     `recovery.py`, where the operation and supported environment variables
     are explained.
 
-Assuming you've logged into Docker hub you can build the **latest** image
-with the following commands from the appropriate directory: -
+Assuming you've logged into Docker hub you can build and push the
+**latest** backup image with the following command from the `sql-backup`
+directory: -
 
     $ docker-compose build
     $ docker-compose push
