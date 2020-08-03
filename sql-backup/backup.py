@@ -155,6 +155,9 @@ Variables for MySQL backups...
     Defined if backing up MySQL.
 
 Variables for (AWS) S3 backup (synchronisation)...
+If the AWS_BUCKET_NAME is set the backup volume is replicated to the named
+bucket in an rsync-like fashion, i.e. expired backups are removed from the
+bucket so it's essentially a copy of the backup volume.
 
 -   AWS_BUCKET_NAME
 
