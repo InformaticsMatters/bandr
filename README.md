@@ -1,4 +1,9 @@
 # Backup and Recovery container images
+
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/informaticsmatters/bandr)
+
+[![CodeFactor](https://www.codefactor.io/repository/github/informaticsmatters/bandr/badge)](https://www.codefactor.io/repository/github/informaticsmatters/bandr)
+
 This project contains a backup container image definition that can be
 used as OpenShift `CronJob` processes to backup using configurable hourly,
 daily, weekly and monthly strategies.
