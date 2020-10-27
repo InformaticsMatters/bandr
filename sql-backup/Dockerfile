@@ -6,9 +6,9 @@ WORKDIR ${APP_ROOT}
 
 # Install stuff including PostgreSQL and MySQL clients
 RUN apk add --no-cache \
-        mysql-client \
+        mysql-client=10.4.15-r0 \
         openssh \
-        postgresql-client \
+        postgresql-client=12.4-r0 \
         rsync \
         sshpass \
         tzdata && \

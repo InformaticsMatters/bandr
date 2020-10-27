@@ -6,9 +6,12 @@ WORKDIR ${APP_ROOT}
 
 # Install stuff including PostgreSQL and MySQL clients
 RUN apk add --no-cache \
-        postgresql-client \
-        mysql-client \
-        tzdata rsync openssh && \
+        mysql-client=10.4.15-r0 \
+        openssh \
+        postgresql-client=12.4-r0 \
+        rsync \
+        sshpass \
+        tzdata && \
     rm -rf /var/cache/apk/*
 # Set the Alpine image timezone...
 ENV TZ=UTC
