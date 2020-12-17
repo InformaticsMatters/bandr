@@ -313,6 +313,7 @@ ERROR_RSYNC_FAILED = 17
 ERROR_KEYSCAN_FAILED = 18
 ERROR_MISSING_AWS_CREDENTIALS = 19
 ERROR_FAILED_DELETING_BUCKET_OBJECT = 20
+ERROR_INCOMPLETE_AWS = 21
 
 # Hide the backup/rsync commands?
 # Probably important for MySQL, where the password
@@ -358,6 +359,11 @@ MSPASS = os.environ.get('MSPASS', '')
 AWS_BUCKET_NAME = os.environ.get('AWS_BUCKET_NAME', '')
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+# RSYNC configuration
+RSYNC_HOST = os.environ.get('RSYNC_HOST', '')
+RSYNC_USER = os.environ.get('RSYNC_USER', '')
+RSYNC_PASS = os.environ.get('RSYNC_PASS', '')
+RSYNC_PATH = os.environ.get('RSYNC_PATH', '')
 
 # The backup config.
 # The root dir, below which you're likely to find
@@ -445,6 +451,8 @@ if BACKUP_TYPE in [B_HOURLY]:
         print('# MSUSER = %s' % MSUSER)
 if AWS_BUCKET_NAME:
     print('# AWS_BUCKET_NAME = %s' % AWS_BUCKET_NAME)
+print('# RSYNC_HOST = %s' % RSYNC_HOST)
+print('# RSYNC_PATH = %s' % RSYNC_PATH)
 
 
 def pretty_size(number):
@@ -494,6 +502,7 @@ def error(error_no):
 # 0. Check environment
 # 1. Check that the root backup directory exists
 #    and create a sub-directory if required
+#    (remembering that the ultimate volume can be S3)
 #
 # For hourly backup types...
 #
@@ -520,7 +529,6 @@ def error(error_no):
 # 8. If AWS_BUCKET_NAME is set, sync to S3
 #    by writing all the files and removing what's not been written
 
-
 BACKUP_START_TIME = datetime.now()
 print('--] Hello [%s]' % BACKUP_START_TIME)
 
@@ -545,6 +553,18 @@ if BACKUP_PRIOR_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY]:
     print('--] Unexpected BACKUP_PRIOR_TYPE (%s)' % BACKUP_PRIOR_TYPE)
     error(ERROR_UNEXPECTED_PBU_TYPE)
 
+# Must have all or nothing with regard to AWS info
+AWS_VAR_COUNT = 0
+if AWS_BUCKET_NAME:
+    AWS_VAR_COUNT += 1
+if AWS_ACCESS_KEY_ID:
+    AWS_VAR_COUNT += 1
+if AWS_SECRET_ACCESS_KEY:
+    AWS_VAR_COUNT += 1
+if AWS_VAR_COUNT not in [0, 3]:
+    print('--] If specifying AWS variables you must define them all')
+    error(ERROR_INCOMPLETE_AWS)
+
 #####
 # 1 #
 #####
@@ -563,7 +583,7 @@ if BACKUP_TYPE == B_HOURLY:
 
     # Hourly backups always create new backup files...
     #
-    # Hourly backup do not have toi run every hour.
+    # Hourly backup does not have to run every hour.
     # The user can just run one each day but at least one
     # hourly backup must be run as its the only type that
     # creates backup files - the other types simply copy files
@@ -621,7 +641,7 @@ if BACKUP_TYPE == B_HOURLY:
         print('--] Backup file removed [%s]' % BACKUP)
         error(ERROR_BU_ERROR)
 
-    # Leave if there is no backup file.
+    # Leave if there is no backup file.
     if not os.path.isfile(BACKUP):
         print('--] No backup file was generated. Leaving')
         error(ERROR_NO_BU)
@@ -720,12 +740,8 @@ if BACKUP_PRE_EXIT_SLEEP_M > 0:
 # 7 #
 #####
 # Check whether the user also wants to rsync the backup content...
-RSYNC_HOST = os.environ.get('RSYNC_HOST', '')
 if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
 
-    RSYNC_USER = os.environ.get('RSYNC_USER', '')
-    RSYNC_PASS = os.environ.get('RSYNC_PASS', '')
-    RSYNC_PATH = os.environ.get('RSYNC_PATH', '')
     if not RSYNC_USER:
         error(ERROR_MISSING_RSYNC_USER)
     elif not RSYNC_PASS:

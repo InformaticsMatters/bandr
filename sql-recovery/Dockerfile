@@ -1,29 +1,41 @@
-FROM python:3.9.0-alpine3.12
+FROM python:3.9.1-slim-buster
 
 ENV APP_ROOT /code
 ENV HOME /root
 WORKDIR ${APP_ROOT}
 
-# Install stuff including PostgreSQL and MySQL clients
-RUN apk add --no-cache \
-        mysql-client=10.4.15-r0 \
-        openssh \
-        postgresql-client=12.4-r0 \
+# Install core packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gnupg \
+        lsb-release \
+        openssh-client \
         rsync \
+        s3fs \
         sshpass \
-        tzdata && \
-    rm -rf /var/cache/apk/*
-# Set the Alpine image timezone...
+        tzdata \
+        wget
+# Install database clients
+RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
+    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
+    apt-get update && \
+    apt-get -y install \
+        postgresql-client-12 \
+        default-mysql-client
+
+# Set the image timezone...
 ENV TZ=UTC
 
 # Populate the image...
 COPY recovery.py ${APP_ROOT}/
-RUN chmod 755 ${APP_ROOT}/recovery.py
+COPY docker-entrypoint.sh ${APP_ROOT}/
 COPY pgpass ${HOME}/.pgpass
-RUN chmod 600 ${HOME}/.pgpass
+RUN chmod 755 ${APP_ROOT}/*.py && \
+    chmod 755 ${APP_ROOT}/*.sh && \
+    chmod 600 ${HOME}/.pgpass
 
 # Force the binary layer of the stdout and stderr streams
 # to be unbuffered
 ENV PYTHONUNBUFFERED 1
 
-CMD [ "./recovery.py" ]
+CMD [ "./docker-entrypoint.sh" ]
