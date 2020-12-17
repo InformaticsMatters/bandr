@@ -10,10 +10,10 @@ if [ -v BACKUP_VOLUME_IS_S3 ]; then
   # Let's put AWS credentials in a custom passwd file...
   echo "--] Backup volume is S3"
 
-  : "${ACCESS_KEY_ID?Need to set ACCESS_KEY_ID}"
+  : "${AWS_ACCESS_KEY_ID?Need to set AWS_ACCESS_KEY_ID}"
   : "${AWS_SECRET_ACCESS_KEY?Need to set AWS_SECRET_ACCESS_KEY}"
 
-  echo "${ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" > "${HOME}/.passwd-s3fs"
+  echo "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" > "${HOME}/.passwd-s3fs"
   chmod 600 "${HOME}"/.passwd-s3fs
   # And then mount the bucket to '/data'
   mkdir -p /backup
