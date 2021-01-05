@@ -154,10 +154,11 @@ Variables for MySQL backups...
     The MySQL database root user password.
     Defined if backing up MySQL.
 
-Variables for (AWS) S3 backup (synchronisation)...
-If the AWS_BUCKET_NAME is set the backup volume is replicated to the named
-bucket in an rsync-like fashion, i.e. expired backups are removed from the
-bucket so it's essentially a copy of the backup volume.
+Variables for (AWS) S3 backup (synchronisation).
+If the AWS_BUCKET_NAME is set the code assumes that the bucket is mapped
+to the expected backup mount point (BACKUP_ROOT_DIR) by the
+'docker-entrypoint.sh' script. The bucket appears as a normal R/W volume
+using 's3fs'.
 
 -   AWS_BUCKET_NAME
 
@@ -526,8 +527,6 @@ def error(error_no):
 #
 # 7. If RSYNC_HOST is set, rsync the backup volume to
 #    the named path.
-# 8. If AWS_BUCKET_NAME is set, sync to S3
-#    by writing all the files and removing what's not been written
 
 BACKUP_START_TIME = datetime.now()
 print('--] Hello [%s]' % BACKUP_START_TIME)
@@ -796,53 +795,6 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
             print('--] stderr follows...')
             print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
         error(ERROR_RSYNC_FAILED)
-
-#####
-# 8 #
-#####
-# Synchronise the current back-up volume with S3?
-if BACKUP_TYPE in [B_HOURLY] and AWS_BUCKET_NAME:
-    if not AWS_SECRET_ACCESS_KEY or not AWS_ACCESS_KEY_ID:
-        error(ERROR_MISSING_AWS_CREDENTIALS)
-    # Synchronise the current set of backup files...
-    # i.e. load everything that's not already there
-    # and remove anything that shouldn't be there.
-    print('--] Writing to bucket %s...' % AWS_BUCKET_NAME)
-    # First, get a list of all the keys in the bucket
-    S3 = boto3.resource('s3')
-    EXISTING_BUCKET_OBJECTS = S3.Bucket(AWS_BUCKET_NAME).objects.all()
-    EXISTING_KEYS = []
-    for EXISTING_BUCKET_OBJECT in EXISTING_BUCKET_OBJECTS:
-        EXISTING_KEYS.append(EXISTING_BUCKET_OBJECT.key)
-    # Now write all the files that appear not to be in the bucket
-    CURRENT_KEYS = []
-    for UNEXPIRED_BACKUP in UNEXPIRED_BACKUPS:
-        # The unexpired backup is likely to be something like
-        #   '/backup/hourly/backup-2020-07-30T11:51:13Z-dumpall.sql.gz'
-        # let's put the file in the bucket using the key
-        #   'hourly/backup-2020-07-30T11:51:13Z-dumpall.sql.gz'
-        # which is created with "'/'.join(UNEXPIRED_BACKUP.split('/')[-2:])"
-        KEY = '/'.join(UNEXPIRED_BACKUP.split('/')[-2:])
-        if KEY not in EXISTING_KEYS:
-            # Not on S3
-            print('--] + %s' % KEY)
-            S3.Bucket(AWS_BUCKET_NAME).upload_file(UNEXPIRED_BACKUP, KEY)
-        else:
-            # Already on S3
-            print('--] = %s' % KEY)
-        CURRENT_KEYS.append(KEY)
-    print('--] Written.')
-    print('--] Cleaning bucket...')
-    # Now remove any files that were in the S3 bucket when we started
-    # that we didn't write...
-    for KEY in EXISTING_KEYS:
-        if KEY not in CURRENT_KEYS:
-            RESPONSE = S3.Object(AWS_BUCKET_NAME, KEY).delete()
-            HTTP_STATUS = RESPONSE['ResponseMetadata']['HTTPStatusCode']
-            print('--] - %s (%s)' % (KEY, HTTP_STATUS))
-            if HTTP_STATUS not in [204]:
-                error(ERROR_FAILED_DELETING_BUCKET_OBJECT)
-    print('--] Cleaned.')
 
 write_termination_log('Success (UNEXPIRED_BACKUPS=%s)' % len(UNEXPIRED_BACKUPS))
 print('--] Goodbye')
