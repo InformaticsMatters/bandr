@@ -175,9 +175,8 @@ using 's3fs'.
     The secret access key.
     This must be set if AWS_BUCKET_NAME is set.
 
-If the backup volume itself is S3-based (i.e. you expect the
-docker-entrypoint.sh to moutn an S3 volume then you need to set a number
-of variables: -
+If the backup volume is S3-based (i.e. you expect docker-entrypoint.sh to
+mount an S3 volume) then you need to set a number of variables: -
 
 -   BACKUP_VOLUME_IS_S3
 
