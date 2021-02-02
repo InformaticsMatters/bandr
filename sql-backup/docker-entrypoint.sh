@@ -17,13 +17,13 @@ if [ -v BACKUP_VOLUME_IS_S3 ]; then
   chmod 600 "${HOME}"/.passwd-s3fs
 
   # Any extra S3 args required?
-  # i.e. is S3_URL or S3_REQUEST_STYLE defined?
+  # i.e. is BACKUP_VOLUME_S3_URL or BACKUP_VOLUME_S3_REQUEST_STYLE defined?
   EXTRA_OPTIONS=""
-  if [ -n "$S3_URL" ]; then
-    EXTRA_OPTIONS+="-o url=${S3_URL}"
+  if [ -n "$BACKUP_VOLUME_S3_URL" ]; then
+    EXTRA_OPTIONS+=" -o url=${BACKUP_VOLUME_S3_URL}"
   fi
-  if [ -n "$S3_REQUEST_STYLE" ]; then
-    EXTRA_OPTIONS+=" -o ${S3_REQUEST_STYLE}"
+  if [ -n "$BACKUP_VOLUME_S3_REQUEST_STYLE" ]; then
+    EXTRA_OPTIONS+=" -o ${BACKUP_VOLUME_S3_REQUEST_STYLE}"
   fi
 
   # And then mount the bucket to '/data'

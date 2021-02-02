@@ -175,13 +175,22 @@ using 's3fs'.
     The secret access key.
     This must be set if AWS_BUCKET_NAME is set.
 
--   S3_URL
+If the backup volume itself is S3-based (i.e. you expect the
+docker-entrypoint.sh to moutn an S3 volume then you need to set a number
+of variables: -
+
+-   BACKUP_VOLUME_IS_S3
+
+    Set to anything (typically 'yes') in order to mount an S3 volume
+    into the backup destination ('/backup').
+
+-   BACKUP_VOLUME_S3_URL
 
     If you use s3fs with a non-Amazon S3 implementation,
     provide the URL (i.e. 'https://url.to.s3/') here.
     This is used in the docker-entrypoint when setting-up s3fs.
 
--   S3_REQUEST_STYLE
+-   BACKUP_VOLUME_S3_REQUEST_STYLE
 
     If you use s3fs with a non-Amazon S3 implementation,
     you can use this to provide path-style requests.
