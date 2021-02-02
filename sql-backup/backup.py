@@ -175,6 +175,19 @@ using 's3fs'.
     The secret access key.
     This must be set if AWS_BUCKET_NAME is set.
 
+-   S3_URL
+
+    If you use s3fs with a non-Amazon S3 implementation,
+    provide the URL (i.e. 'https://url.to.s3/') here.
+    This is used in the docker-entrypoint when setting-up s3fs.
+
+-   S3_REQUEST_STYLE
+
+    If you use s3fs with a non-Amazon S3 implementation,
+    you can use this to provide path-style requests.
+    i.e. set to 'use_path_request_style' if required.
+    This is used in the docker-entrypoint when setting-up s3fs.
+
 Variables for rsync remove copying support.
 If the RSYNC_HOST variable is set each successful hourly backup
 will result in an rsync of the backup volume to
@@ -261,7 +274,7 @@ Then, to use that in your backup container, replacing the default .pgpass file,
 you simply define volumes and volumeMounts for the ConfigMap. A bit like this: -
 
     containers:
-    - image: informaticsmatters/postgresql-backup:latest
+    - image: informaticsmatters/postgresql-backup:stable
       [...]
       volumeMounts:
       - name: pgpass
@@ -279,7 +292,7 @@ by Kubernetes).
 
 Alan Christie
 Informatics Matters
-June 2020
+February 2021
 """
 
 import glob

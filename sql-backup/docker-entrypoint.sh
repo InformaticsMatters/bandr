@@ -15,9 +15,22 @@ if [ -v BACKUP_VOLUME_IS_S3 ]; then
 
   echo "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" > "${HOME}/.passwd-s3fs"
   chmod 600 "${HOME}"/.passwd-s3fs
+
+  # Any extra S3 args required?
+  # i.e. is S3_URL or S3_REQUEST_STYLE defined?
+  EXTRA_OPTIONS=""
+  if [ -n "$S3_URL" ]; then
+    EXTRA_OPTIONS+="-o url=${S3_URL}"
+  fi
+  if [ -n "$S3_REQUEST_STYLE" ]; then
+    EXTRA_OPTIONS+=" -o ${S3_REQUEST_STYLE}"
+  fi
+
   # And then mount the bucket to '/data'
+  echo "--] s3fs AWS_BUCKET_NAME=${AWS_BUCKET_NAME}"
+  echo "--] s3fs EXTRA_OPTIONS=${EXTRA_OPTIONS}"
   mkdir -p /backup
-  s3fs "${AWS_BUCKET_NAME}" /backup -o passwd_file="${HOME}/.passwd-s3fs"
+  s3fs "${AWS_BUCKET_NAME}" /backup -o passwd_file="${HOME}/.passwd-s3fs ${EXTRA_OPTIONS}"
 fi
 
 # Run the backup logic
