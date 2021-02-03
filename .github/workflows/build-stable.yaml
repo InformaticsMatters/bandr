@@ -1,5 +1,10 @@
 ---
-name: build latest
+name: build stable
+
+# Actions for an 'official' tag.
+#
+# An official tag is a 2 or 3 digit value (i.e. 'N.N(.N)').
+# We publish images using the tag as a tag and 'stable' as s tag.
 
 # -----------------
 # Control variables (GitHub Secrets)
@@ -23,19 +28,22 @@ name: build latest
 
 on:
   push:
-    branches:
-    - 'master'
+    tags:
+    - '[0-9]+.[0-9]+'
+    - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  build-and-push-latest:
+  push-stable:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-#    - name: Set up QEMU
-#      uses: docker/setup-qemu-action@v1
-#    - name: Set up Docker Buildx
-#      uses: docker/setup-buildx-action@v1
+    - name: Inject slug/short variables
+      uses: rlespinasse/github-slug-action@v3.x
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
     - name: Login to DockerHub
       uses: docker/login-action@v1
       with:
@@ -44,12 +52,16 @@ jobs:
     - name: Build and push sql-backup
       uses: docker/build-push-action@v2
       with:
-        tags: informaticsmatters/sql-backup:latest
+        tags: |
+          informaticsmatters/sql-backup:${{ env.GITHUB_REF_SLUG }}
+          informaticsmatters/sql-backup:stable
         context: sql-backup
         push: true
     - name: Build and push sql-recovery
       uses: docker/build-push-action@v2
       with:
-        tags: informaticsmatters/sql-recovery:latest
+        tags: |
+          informaticsmatters/sql-recovery:${{ env.GITHUB_REF_SLUG }}
+          informaticsmatters/sql-recovery:stable
         context: sql-recovery
         push: true
