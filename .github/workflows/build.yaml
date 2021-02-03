@@ -1,0 +1,53 @@
+---
+name: build
+
+# Actions that take place on branches
+# or are driven by pull-requests to the main/master branch.
+# Here we build container images but don't push them
+# and therefore do not require docker credentials.
+
+# -----------------
+# Control variables (GitHub Secrets)
+# -----------------
+#
+# At the GitHub 'organisation' or 'project' level you must have the following
+# GitHub 'Repository Secrets' defined (i.e. via 'Settings -> Secrets'): -
+#
+# (none)
+#
+# -----------
+# Environment (GitHub Environments)
+# -----------
+#
+# Environment         (none)
+#
+# For automated deployment we expect the following in the environment: -
+#
+# (none)
+
+on:
+  push:
+    branches-ignore:
+    - 'master'
+  pull_request:
+    branches:
+    - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Build sql-backup
+      uses: docker/build-push-action@v2
+      with:
+        context: sql-backup
+        push: false
+    - name: Build sql-recovery
+      uses: docker/build-push-action@v2
+      with:
+        context: sql-recovery
+        push: false

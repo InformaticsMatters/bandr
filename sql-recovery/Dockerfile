@@ -20,19 +20,24 @@ RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
     apt-get -y install \
-        postgresql-client-12 \
+        postgresql-client-13 \
         default-mysql-client
 
 # Set the image timezone...
 ENV TZ=UTC
 
 # Populate the image...
-COPY recovery.py ${APP_ROOT}/
+RUN /usr/local/bin/python -m pip install --upgrade pip && \
+    pip install boto3==1.14.32
+
+COPY backup.py ${APP_ROOT}/
 COPY docker-entrypoint.sh ${APP_ROOT}/
 COPY pgpass ${HOME}/.pgpass
 RUN chmod 755 ${APP_ROOT}/*.py && \
     chmod 755 ${APP_ROOT}/*.sh && \
-    chmod 600 ${HOME}/.pgpass
+    chmod 600 ${HOME}/.pgpass && \
+    mkdir ${HOME}/.ssh && \
+    chmod 700 ${HOME}/.ssh
 
 # Force the binary layer of the stdout and stderr streams
 # to be unbuffered
