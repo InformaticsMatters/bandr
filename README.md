@@ -2,6 +2,8 @@
 
 ![build](https://github.com/InformaticsMatters/bandr/workflows/build/badge.svg)
 ![build latest](https://github.com/InformaticsMatters/bandr/workflows/build%20latest/badge.svg)
+![build tag](https://github.com/InformaticsMatters/bandr/workflows/build%20tag/badge.svg)
+![build stable](https://github.com/InformaticsMatters/bandr/workflows/build%20stable/badge.svg)
 
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/informaticsmatters/bandr)
 
