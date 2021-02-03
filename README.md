@@ -1,6 +1,7 @@
 # Backup and Recovery container images
 
 ![build](https://github.com/InformaticsMatters/bandr/workflows/build/badge.svg)
+![build latest](https://github.com/InformaticsMatters/bandr/workflows/build%20latest/badge.svg)
 
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/informaticsmatters/bandr)
 
