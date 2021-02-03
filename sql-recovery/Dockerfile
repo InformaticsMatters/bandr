@@ -30,7 +30,7 @@ ENV TZ=UTC
 RUN /usr/local/bin/python -m pip install --upgrade pip && \
     pip install boto3==1.14.32
 
-COPY backup.py ${APP_ROOT}/
+COPY recovery.py ${APP_ROOT}/
 COPY docker-entrypoint.sh ${APP_ROOT}/
 COPY pgpass ${HOME}/.pgpass
 RUN chmod 755 ${APP_ROOT}/*.py && \
