@@ -1,11 +1,13 @@
 # Backup and Recovery container images
 
+![build](https://github.com/InformaticsMatters/bandr/workflows/build/badge.svg)
+
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/informaticsmatters/bandr)
 
 [![CodeFactor](https://www.codefactor.io/repository/github/informaticsmatters/bandr/badge)](https://www.codefactor.io/repository/github/informaticsmatters/bandr)
 
 This project contains a backup container image definition that can be
-used as OpenShift `CronJob` processes to backup using configurable hourly,
+used as Kubernetes `CronJob` jobs to backup using configurable hourly,
 daily, weekly and monthly strategies.
 
 There is also a recovery image definition that can be used as an OpenShift
@@ -16,6 +18,8 @@ The images support PostgreSQL and MySQL databases, controlled by
 environment variables.
 
 Both images are available on the Docker hub.
+
+>   The image is built with PostgreSQL 13.
 
 >   Backup does not work for MySQL 8 at the moment. In MySQL 8.0,
     **caching_sha2_password** is the default authentication plugin
@@ -33,7 +37,7 @@ directory: -
     $ docker-compose build
     $ docker-compose push
     
-And the **stable** image with: -
+Build the **stable** image with: -
 
     $ IMAGE_TAG=stable docker-compose build
     $ IMAGE_TAG=stable docker-compose push
@@ -54,7 +58,7 @@ to collect a MySQL backup in `/tmp`: -
 >   `172.17.01` is typically the default host in the Docker network and MySQL
     must be listening on this host (see `MYSQL_ROOT_HOST`)
     
-And this to recover the latest backup: -
+Use this to recover the latest backup: -
 
     $ docker run -e MSHOST=172.17.0.1 \
         -e MSUSER=root -e MSPASS=my-secret-pw \
