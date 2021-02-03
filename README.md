@@ -10,17 +10,17 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/informaticsmatters/bandr/badge)](https://www.codefactor.io/repository/github/informaticsmatters/bandr)
 
 This project contains a backup container image definition that can be
-used as Kubernetes `CronJob` jobs to backup using configurable hourly,
-daily, weekly and monthly strategies.
+used as a Kubernetes `CronJob` to backup PostgreSQL (or MYSQL) using
+configurable hourly, daily, weekly and monthly strategies.
 
-There is also a recovery image definition that can be used as an OpenShift
+There is also a recovery image that can be used as a Kubernetes
 `Job` in order to list and/or recover the latest backup or a specific
 backup.
 
 The images support PostgreSQL and MySQL databases, controlled by
 environment variables.
 
-Both images are available on the Docker hub.
+Images are built and published automatically using GitHub Actions.
 
 >   The image is built with PostgreSQL 13.
 
@@ -32,18 +32,6 @@ Both images are available on the Docker hub.
 >   For a detailed description of each utility refer to `backup.py` or
     `recovery.py`, where the operation and supported environment variables
     are explained.
-
-Assuming you've logged into Docker hub you can build and push the
-**latest** backup image with the following command from the `sql-backup`
-directory: -
-
-    $ docker-compose build
-    $ docker-compose push
-    
-Build the **stable** image with: -
-
-    $ IMAGE_TAG=stable docker-compose build
-    $ IMAGE_TAG=stable docker-compose push
 
 ## Command-line tests (MySQL)
 You could start a simple MySQL 5.7 docker container with: -
