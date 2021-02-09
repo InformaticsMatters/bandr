@@ -417,7 +417,7 @@ BACKUP_COMMANDS = {
 # Backup commands (for a single database).
 # Check comments above in case they're relevant here.
 BACKUP_COMMANDS_ONE_DB = {
-    FLAVOUR_POSTGRESQL: 'pg_dump --username=%s --no-password --clean %s'
+    FLAVOUR_POSTGRESQL: 'pg_dump --username=%s --no-password %s'
                         ' | gzip > %s' % (PGUSER, DATABASE, BACKUP),
     FLAVOUR_MYSQL: 'mysqldump'
                    ' --host=%s --port=%s'
