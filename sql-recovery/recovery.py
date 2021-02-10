@@ -11,6 +11,9 @@ Recovery supports both PostgreSQL and MySQL backups.
 If you're using it for PostgreSQL use the PG* environment variables,
 if you're using it for MySQL use the MS* variables.
 
+When complete the file /dev/termination-log will start with
+either SUCCESS or FAILURE.
+
 A number of environment variables control this utility: -
 
 -   FROM_BACKUP
@@ -160,6 +163,18 @@ else:
 SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
 
 
+def write_termination_message(message='SUCCESS'):
+    """Writes the message to '/dev/termination-log'.
+    It's expected to be a short phrase that's written to '/dev/termination-log'
+    that's available to Kubernetes once the container's finished.
+
+    To simplify automation the message must begin 'SUCCESS' or 'FAILURE'
+    the default, as clearly shown, is SUCCESS.
+    """
+    with open('/dev/termination-log', 'wt') as t_log_file:
+        t_log_file.write(message)
+
+
 def pretty_size(number):
     """Returns the number as a pretty number.
     i.e. 2,971,821,278 is returned as '2.97 GBytes'
@@ -186,6 +201,7 @@ def error(error_no):
     :type error_no: ``int``
     """
     print('--] Encountered unrecoverable ERROR [%s] ... leaving' % error_no)
+    write_termination_message('FAILURE (%s)' % error_no)
     sys.exit(0)
 
 
@@ -281,6 +297,7 @@ print('--] Latest backup: %s' % LATEST_BACKUP)
 #####
 if FROM_BACKUP in [B_NONE]:
     print('--] FROM_BACKUP is NONE. Nothing to do.')
+    write_termination_message()
     sys.exit(0)
 
 #####
@@ -288,6 +305,7 @@ if FROM_BACKUP in [B_NONE]:
 #####
 if not LATEST_BACKUP:
     print('--] Asked to recover LATEST but there are no backups. Sorry.')
+    write_termination_message('FAILURE (No Backups)')
     sys.exit(0)
 
 BACKUP_FILE = None
@@ -303,6 +321,7 @@ else:
             break
 if not BACKUP_FILE:
     print('--] Could not find the backup. Leaving.')
+    write_termination_message('FAILURE (Backup not found)')
     sys.exit(0)
 
 # Unpack the backup to reveal the SQL
@@ -326,6 +345,7 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     # Remove the current backup
     os.remove(BACKUP)
     print('--] Leaving')
+    write_termination_message('FAILURE (Unpack failed)')
     sys.exit(0)
 
 print("    $", RECOVERY_CMD)
@@ -348,8 +368,12 @@ if COMPLETED_PROCESS.returncode != 0:
     if not COMPLETED_PROCESS.stderr:
         print('--] There was nothing on stderr')
     print('--] Leaving (SQL can be found in dumpall.sql)')
-    sys.exit(0)
+    write_termination_message('FAILURE (Recovery failed)')
 elif COMPLETED_PROCESS.stderr:
     print('--] Although stderr was used the recovery was successful')
+    write_termination_message()
+else:
+    # Nothing went wrong.
+    write_termination_message()
 
 print('--] Done')
