@@ -127,7 +127,8 @@ BACKUP_FILE_PREFIX = 'backup'
 
 # Recovery commands for the various database flavours...
 RECOVERY_COMMANDS = {
-    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -f dumpall.sql template1'
+    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -v ON_ERROR_STOP=1'
+                        ' -f dumpall.sql'
                         ' > sql.out' % (PGHOST, PGUSER),
     FLAVOUR_MYSQL: 'mysql --host=%s --port=%s'
                    ' --user=%s --password="%s" < dumpall.sql > sql.out'
@@ -308,7 +309,11 @@ if not BACKUP_FILE:
 # and then use this file in the recovery command.
 print('--] Recovering from %s...' % BACKUP_FILE)
 
-UNPACK_CMD = 'gunzip -c %s > dumpall.sql' % BACKUP_FILE
+# Unpack - To avoid errors relating to changing the postgres user
+#          remove anything that relates to creating or dropping postgres
+UNPACK_CMD = "gunzip -c %s" \
+             " | egrep -v '^(CREATE|DROP) ROLE postgres;'" \
+             " > dumpall.sql" % BACKUP_FILE
 print("    $", UNPACK_CMD)
 COMPLETED_PROCESS = subprocess.run(UNPACK_CMD, shell=True, stderr=subprocess.PIPE)
 

@@ -73,7 +73,7 @@ fi
 # Has a POST_DEBUG been defined?
 # If so then wait here - for a long time!
 if [ -n "${POST_DEBUG+x}" ]; then
-  echo "--] POST_DEBUG defined. Stopping..."
+  echo "--] POST_DEBUG defined. Going to sleep rather than leaving..."
   while true; do
     sleep 10000
   done
