@@ -11,8 +11,8 @@ Recovery supports both PostgreSQL and MySQL backups.
 If you're using it for PostgreSQL use the PG* environment variables,
 if you're using it for MySQL use the MS* variables.
 
-When complete the file /dev/termination-log will start with
-either SUCCESS or FAILURE.
+When complete the content of the termination log (/dev/termination-log)
+will start with either SUCCESS or FAILURE.
 
 A number of environment variables control this utility: -
 

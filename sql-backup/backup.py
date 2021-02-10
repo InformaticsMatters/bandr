@@ -30,6 +30,9 @@ The backup supports both PostgreSQL and MySQL backups.
 If you're using it for PostreSQL use the PG* environment variables,
 if you're using it for MySQL use the MS* variables.
 
+When complete the content of the termination log (/dev/termination-log)
+will start with either SUCCESS or FAILURE.
+
 A number of environment variables control this image's behaviour: -
 
 -   BACKUP_TYPE
@@ -311,8 +314,6 @@ import shutil
 import time
 from datetime import datetime
 
-import boto3
-
 TERMINATION_LOG = '/dev/termination-log'
 
 ERROR_NO_PGPASS = 1
@@ -493,15 +494,16 @@ def pretty_size(number):
     return "{0:,.2f} {1:}Bytes".format(float_bytes, SCALE_UNITS[scale_factor])
 
 
-def write_termination_log(message):
-    """Write a message (typically a short message) to the termination log,
-    normally picked-up in a Kubernetes environment.
+def write_termination_message(message='SUCCESS'):
+    """Writes the message to '/dev/termination-log'.
+    It's expected to be a short phrase that's written to '/dev/termination-log'
+    that's available to Kubernetes once the container's finished.
 
-    :param message: A text message to write, a new-line is added
-    :type message: ``str``
+    To simplify automation the message must begin 'SUCCESS' or 'FAILURE'
+    the default, as clearly shown, is SUCCESS.
     """
-    with open(TERMINATION_LOG, 'w') as t_log:
-        t_log.write(message + '\n')
+    with open('/dev/termination-log', 'wt') as t_log_file:
+        t_log_file.write(message)
 
 
 def error(error_no):
@@ -516,7 +518,7 @@ def error(error_no):
     """
     message = 'Encountered unrecoverable ERROR [%s] ... leaving' % error_no
     print('--] %s' % message)
-    write_termination_log(message)
+    write_termination_message('FAILURE (%s)' % error_no)
     sys.exit(0)
 
 
@@ -818,5 +820,5 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
             print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
         error(ERROR_RSYNC_FAILED)
 
-write_termination_log('Success (UNEXPIRED_BACKUPS=%s)' % len(UNEXPIRED_BACKUPS))
+write_termination_message()
 print('--] Goodbye')
