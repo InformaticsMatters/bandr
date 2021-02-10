@@ -12,6 +12,10 @@
 #                         (goes into a while loop) once the recovery is
 #                         complete.
 
+# Echo psql version
+PSQL_VERSION=$(psql --version)
+echo "# PSQL_VERSION = ${PSQL_VERSION}"
+
 # Is S3 the source?
 if [ -v BACKUP_VOLUME_IS_S3 ]; then
   # S3 is the backup destination

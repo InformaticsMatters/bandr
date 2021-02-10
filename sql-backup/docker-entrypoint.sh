@@ -12,6 +12,10 @@
 #                         (goes into a while loop) once the recovery is
 #                         complete.
 
+# Echo the image g_dumpall version
+PG_DUMPALL_VERSION=$(pg_dumpall --version)
+echo "# PG_DUMPALL_VERSION = ${PG_DUMPALL_VERSION}"
+
 # Is S3 the destination?
 if [ -v BACKUP_VOLUME_IS_S3 ]; then
   # S3 is the backup destination
