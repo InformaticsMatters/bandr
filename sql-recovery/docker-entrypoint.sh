@@ -22,6 +22,17 @@ if [ -v BACKUP_VOLUME_IS_S3 ]; then
   : "${AWS_ACCESS_KEY_ID?Need to set AWS_ACCESS_KEY_ID}"
   : "${AWS_SECRET_ACCESS_KEY?Need to set AWS_SECRET_ACCESS_KEY}"
 
+  echo "# AWS_ACCESS_KEY_ID = (supplied)"
+  echo "# AWS_SECRET_ACCESS_KEY = (supplied)"
+  echo "# AWS_BUCKET_NAME = ${AWS_BUCKET_NAME}"
+  echo "# BACKUP_VOLUME_S3_URL = ${BACKUP_VOLUME_S3_URL}"
+  echo "# BACKUP_VOLUME_S3_REQUEST_STYLE = ${BACKUP_VOLUME_S3_REQUEST_STYLE}"
+  if [ -n "${POST_DEBUG+x}" ]; then
+    echo "# POST_DEBUG = (defined)"
+  else
+    echo "# POST_DEBUG = (not defined)"
+  fi
+
   # We'll use s3fs to mount the bucket so it can be used
   # as a conventional file-system.
   #
