@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 
+# BACKUP_VOLUME_IS_S3     If this is set then s3fs is employed to
+#                         mount an S3 bucket, where...
+# AWS_ACCESS_KEY_ID       Is the bucket access key ID
+# AWS_SECRET_ACCESS_KEY   Is the bucket access secret
+# AWS_BUCKET_NAME         Is the bucket name
+# BACKUP_VOLUME_S3_URL            Is used for non-AWS buckets
+# BACKUP_VOLUME_S3_REQUEST_STYLE  Is used for non-AWS buckets
+#
+# POST_DEBUG              If this is set this script stops
+#                         (goes into a while loop) once the recovery is
+#                         complete.
+
 # Is S3 the destination?
 if [ -v BACKUP_VOLUME_IS_S3 ]; then
   # S3 is the backup destination
@@ -42,3 +54,14 @@ fi
 
 # Run the backup logic
 ./backup.py
+
+# Has a POST_DEBUG been defined?
+# If so then wait here - for a long time!
+if [ -n "${POST_DEBUG+x}" ]; then
+  echo "--] POST_DEBUG defined. Stopping..."
+  while true; do
+    sleep 10000
+  done
+else
+  echo "--] POST_DEBUG is not defined - leaving now..."
+fi
