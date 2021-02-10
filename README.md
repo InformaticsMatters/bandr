@@ -10,24 +10,25 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/informaticsmatters/bandr/badge)](https://www.codefactor.io/repository/github/informaticsmatters/bandr)
 
 This project contains a backup container image definition that can be
-used as a Kubernetes `CronJob` to backup PostgreSQL (or MYSQL) using
-configurable hourly, daily, weekly and monthly strategies.
+used as a Kubernetes `CronJob` (or one-time `Job`) to backup PostgreSQL
+(or MYSQL) using configurable hourly, daily, weekly and monthly strategies.
 
 There is also a recovery image that can be used as a Kubernetes
 `Job` in order to list and/or recover the latest backup or a specific
 backup.
 
-The images support PostgreSQL and MySQL databases, controlled by
-environment variables.
-
 Images are built and published automatically using GitHub Actions.
 
->   The image is built with PostgreSQL 13.
+>   The image is built with PostgreSQL 12.
 
 >   Backup does not work for MySQL 8 at the moment. In MySQL 8.0,
     **caching_sha2_password** is the default authentication plugin
     rather than **mysql_native_password**. See
     https://stackoverflow.com/questions/49963383/authentication-plugin-caching-sha2-password
+
+>   Although the image supports MySQL databases, controlled by
+    environment variables, this feature is deprecated and wil be remove
+    in a future release.
 
 >   For a detailed description of each utility refer to `backup.py` or
     `recovery.py`, where the operation and supported environment variables
