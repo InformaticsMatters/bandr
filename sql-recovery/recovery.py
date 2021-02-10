@@ -331,6 +331,11 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
 print("    $", RECOVERY_CMD)
 COMPLETED_PROCESS = subprocess.run(RECOVERY_CMD, shell=True, stderr=subprocess.PIPE)
 
+RECOVERY_END_TIME = datetime.now()
+print('--] Recovery finished [%s]' % RECOVERY_END_TIME)
+ELAPSED_TIME = RECOVERY_END_TIME - RECOVERY_START_TIME
+print('--] Elapsed time %s' % ELAPSED_TIME)
+
 # Check subprocess exit code and stderr
 # We should treat stderr as a warning if the exit code is zero.
 if COMPLETED_PROCESS.stderr:
