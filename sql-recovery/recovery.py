@@ -7,9 +7,7 @@ Expects Python 3 (recursive glob).
 The backup directory (BACKUP_ROOT_DIR) is expected to have
 been mounted as a volume in the container image.
 
-Recovery supports both PostgreSQL and MySQL backups.
-If you're using it for PostgreSQL use the PG* environment variables,
-if you're using it for MySQL use the MS* variables.
+Recovery supports PostgreSQL backups.
 
 When complete the content of the termination log (/dev/termination-log)
 will start with either SUCCESS or FAILURE.
@@ -37,6 +35,15 @@ Variables relating to extended features...
     If undefined a complete recovery of the server (all databases)
     will be performed.
 
+-   DATABASE_EXPECTED_COUNT
+
+    If set, once recovery has been successful, the recovery logic
+    counts the number of databases that have been recovered. If the
+    actual count differs from the value of 'DATABASE_EXPECTED_COUNT'
+    the recovery is considered to have failed.
+
+    Used primarily for automated recovery tests.
+
 Variables for PostgreSQL recovery...
 
 -   PGHOST
@@ -58,30 +65,6 @@ Variables for PostgreSQL recovery...
     the default .pgpass file before the recovery begins.
     (default '-')
 
-Variables for MySQL recovery...
-
--   MSHOST
-
-    The MySQL host address.
-    (default ''). You must either define
-    PGHOST for PostgreSQL recovery (see above)
-    or MSHOST or MySQL backups.
-
--   MSPORT
-
-    The MySQL database port.
-    (default 3306).
-
--   MSUSER
-
-    The MySQL database root user.
-    Defined if backing up MySQL.
-
--   MSPASS
-
-    The MySQL database root user password.
-    Defined if backing up MySQL.
-
 Alan Christie
 Informatics Matters
 February 2021
@@ -98,7 +81,6 @@ ERROR_NO_MSPASS = 13
 
 # Supported database flavours...
 FLAVOUR_POSTGRESQL = 'postgresql'
-FLAVOUR_MYSQL = 'mysql'
 
 # Alternatives for Backup
 B_NONE = 'NONE'
@@ -110,17 +92,14 @@ B_LATEST = 'LATEST'
 FROM_BACKUP = os.environ.get('FROM_BACKUP', 'LATEST').upper()
 # A specific database?
 DATABASE = os.environ.get('DATABASE', '')
+# Expected count of databases (after recovery)
+DATABASE_EXPECTED_COUNT = os.environ.get('DATABASE_EXPECTED_COUNT', '')
 # Extract configuration from the environment.
 # Postgres material...
 PGHOST = os.environ.get('PGHOST', '')
 PGUSER = os.environ.get('PGUSER', 'postgres')
 PGADMINPASS = os.environ.get('PGADMINPASS', '-')
 HOME = os.environ['HOME']
-# MySQL material...
-MSHOST = os.environ.get('MSHOST', '')
-MSPORT = os.environ.get('MSPORT', '3306')
-MSUSER = os.environ.get('MSUSER', '')
-MSPASS = os.environ.get('MSPASS', '')
 
 # The backup config.
 # The root dir, below which you're likely to find
@@ -132,26 +111,20 @@ BACKUP_FILE_PREFIX = 'backup'
 RECOVERY_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -v ON_ERROR_STOP=1'
                         ' -f dumpall.sql'
-                        ' > sql.out' % (PGHOST, PGUSER),
-    FLAVOUR_MYSQL: 'mysql --host=%s --port=%s'
-                   ' --user=%s --password="%s" < dumpall.sql > sql.out'
-                   % (MSHOST, MSPORT, MSUSER, MSPASS)
+                        ' > sql.out' % (PGHOST, PGUSER)
 }
 # Recovery commands (for a single database).
 # Check comments above in case they're relevant here.
 RECOVERY_COMMANDS_ONE_DB = {
     FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -f dumpall.sql %s'
-                        ' > sql.out' % (PGHOST, PGUSER, DATABASE),
-    FLAVOUR_MYSQL: 'mysql --host=%s --port=%s'
-                   ' --user=%s --password="%s" < dumpall.sql > sql.out'
-                   % (MSHOST, MSPORT, MSUSER, MSPASS)
+                        ' > sql.out' % (PGHOST, PGUSER, DATABASE)
 }
 
 # What 'flavour' of database do we expect to recover?
-# We currently support Postgres and MySQL.
+# We currently support Postgres.
 # The flavour is determined by the environment variables that we find.
 # If PGHOST has been defined then we'll expect a Postgres database
-DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL if PGHOST else FLAVOUR_MYSQL
+DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL
 if DATABASE:
     RECOVERY_CMD = RECOVERY_COMMANDS_ONE_DB[DATABASE_FLAVOUR]
 else:
@@ -212,6 +185,10 @@ if DATABASE:
     print('# DATABASE = %s' % DATABASE)
 else:
     print('# DATABASE = (unspecified - recovering all)')
+if DATABASE_EXPECTED_COUNT:
+    print('# DATABASE_EXPECTED_COUNT = %s' % DATABASE_EXPECTED_COUNT)
+else:
+    print('# DATABASE_EXPECTED_COUNT = (unspecified)')
 HAVE_ADMIN_PASS = False
 if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
     print('# PGHOST = %s' % PGHOST)
@@ -221,17 +198,6 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
         HAVE_ADMIN_PASS = True
         msg = '(supplied)'
     print('# PGADMINPASS = %s' % msg)
-else:
-    print('# MSHOST = %s' % MSHOST)
-    print('# MSPORT = %s' % MSPORT)
-    print('# MSUSER = %s' % MSUSER)
-
-if DATABASE_FLAVOUR in [FLAVOUR_MYSQL]:
-    if not MSPASS:
-        print('--] MSPASS has not been defined')
-        error(ERROR_NO_MSPASS)
-    else:
-        print('# MSPASS = (supplied))')
 
 # Recover...
 #
@@ -244,6 +210,9 @@ if DATABASE_FLAVOUR in [FLAVOUR_MYSQL]:
 #    Else recover the named backup from a file whose name
 #       matches the provided string, normally an ISO8601 datetime string.
 #        a date and time (i.e. '2018-06-25T21:05:07Z')
+# 5. Once recovery is complete, if DATABASE_EXPECTED_COUNT is set
+#    we make suer that actual number of databases matches the
+#    supplied value
 
 RECOVERY_START_TIME = datetime.now()
 print('--] Hello [%s]' % RECOVERY_START_TIME)
@@ -369,11 +338,46 @@ if COMPLETED_PROCESS.returncode != 0:
         print('--] There was nothing on stderr')
     print('--] Leaving (SQL can be found in dumpall.sql)')
     write_termination_message('FAILURE (Recovery failed)')
+    sys.exit(0)
 elif COMPLETED_PROCESS.stderr:
     print('--] Although stderr was used the recovery was successful')
-    write_termination_message()
-else:
-    # Nothing went wrong.
-    write_termination_message()
+
+#####
+# 5 #
+#####
+
+# If specified then make sure it's correct.
+if DATABASE_EXPECTED_COUNT:
+
+    # Here we just get a count of the number of databases
+    # and compare that with the expected value provided in
+    # DATABASE_EXPECTED_COUNT.
+    # If it does not match it's an error.
+    COUNT_CMD = 'psql -q -h %s -U %s' \
+                ' -t -c "SELECT COUNT(*) FROM pg_database;"' \
+                ' | tr -d " "' % (PGHOST, PGUSER)
+    CHECK_CMD = COUNT_CMD + ' | grep "^%s$"' % DATABASE_EXPECTED_COUNT
+    print('--] DATABASE_EXPECTED_COUNT is set. Counting databases...')
+    print('$ %s' % CHECK_CMD)
+    COMPLETED_PROCESS = subprocess.run(CHECK_CMD,
+                                       shell=True,
+                                       stderr=subprocess.PIPE)
+
+    if COMPLETED_PROCESS.returncode != 0:
+        # Count failed.
+        # Run a command to display the actual count,
+        # set the termination message and then leave
+        print('--] Count failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+        # Display the actual count
+        print('--] Expected %s but actual count is...' % DATABASE_EXPECTED_COUNT)
+        COMPLETED_PROCESS = subprocess.run(COUNT_CMD,
+                                           shell=True,
+                                           stderr=subprocess.PIPE)
+        print(COMPLETED_PROCESS.stdout.decode("utf-8"))
+        write_termination_message('FAILURE (Count %s failed)' % DATABASE_EXPECTED_COUNT)
+        sys.exit(0)
+
+# Success if we get here
+write_termination_message()
 
 print('--] Done')
