@@ -373,7 +373,6 @@ if DATABASE_EXPECTED_COUNT:
         COMPLETED_PROCESS = subprocess.run(COUNT_CMD,
                                            shell=True,
                                            stderr=subprocess.PIPE)
-        print(COMPLETED_PROCESS.stdout.decode("utf-8"))
         write_termination_message('FAILURE (Count %s failed)' % DATABASE_EXPECTED_COUNT)
         sys.exit(0)
 
