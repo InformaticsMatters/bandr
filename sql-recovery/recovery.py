@@ -77,7 +77,6 @@ import subprocess
 import sys
 
 ERROR_NO_ROOT = 4
-ERROR_NO_MSPASS = 13
 
 # Supported database flavours...
 FLAVOUR_POSTGRESQL = 'postgresql'

@@ -26,9 +26,7 @@ For example: -
 The time of the backup is the approximate time this utility is executed,
 and is the approximate time of the start of the backup process.
 
-The backup supports both PostgreSQL and MySQL backups.
-If you're using it for PostreSQL use the PG* environment variables,
-if you're using it for MySQL use the MS* variables.
+The backup supports both PostgreSQL
 
 When complete the content of the termination log (/dev/termination-log)
 will start with either SUCCESS or FAILURE.
@@ -103,9 +101,8 @@ Variables for PostgreSQL backups...
 
     The Postgres database Hostname.
     Used only for 'hourly' backup types
-    (default ''). You must either define
-    PGHOST for PostgreSQL backups
-    or MSHOST or MySQL (see below) backups.
+    (default ''). You must define
+    PGHOST for PostgreSQL backups.
 
 -   PGUSER
 
@@ -131,31 +128,6 @@ Variables for PostgreSQL backups...
     the default .pgpass file before the backup begins.
     If you use this variable using PGPASSFILE is pointless.
     (default '-')
-
-Variables for MySQL backups...
-
--   MSHOST
-
-    The MySQL host address.
-    Used only for 'hourly' backup types
-    (default ''). You must either define
-    PGHOST for PostgreSQL backups (see above)
-    or MSHOST or MySQL backups.
-
--   MSPORT
-
-    The MySQL database port.
-    (default 3306).
-
--   MSUSER
-
-    The MySQL database root user.
-    Defined if backing up MySQL.
-
--   MSPASS
-
-    The MySQL database root user password.
-    Defined if backing up MySQL.
 
 Variables for (AWS) S3 backup (synchronisation).
 If the AWS_BUCKET_NAME is set the code assumes that the bucket is mapped
@@ -339,14 +311,11 @@ ERROR_FAILED_DELETING_BUCKET_OBJECT = 20
 ERROR_INCOMPLETE_AWS = 21
 
 # Hide the backup/rsync commands?
-# Probably important for MySQL, where the password
-# is provided as apart of the command.
-HIDE_BACKUP_COMMAND = True
+HIDE_BACKUP_COMMAND = False
 HIDE_RSYNC_COMMAND = True
 
 # Supported database flavours...
 FLAVOUR_POSTGRESQL = 'postgresql'
-FLAVOUR_MYSQL = 'mysql'
 
 # Backup types...
 B_HOURLY = 'hourly'
@@ -371,11 +340,6 @@ PGUSER = os.environ.get('PGUSER', 'postgres')
 PGPASSFILE = os.environ.get('PGPASSFILE', '${HOME}/.pgpass')
 PGADMINPASS = os.environ.get('PGADMINPASS', '-')
 HOME = os.environ['HOME']
-# MySQL material...
-MSHOST = os.environ.get('MSHOST', '')
-MSPORT = os.environ.get('MSPORT', '3306')
-MSUSER = os.environ.get('MSUSER', '')
-MSPASS = os.environ.get('MSPASS', '')
 # AWS S3 material...
 # If the bucket name is used we assume
 # the AWS environment variables are also set
@@ -400,40 +364,24 @@ BACKUP_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_TYPE)
 BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 
 # Backup commands (for all databases) for the various database flavours...
-#
-# A list of MySQL 5.7 options can be found at
-# https://dev.mysql.com/doc/refman/5.7/en/mysqldump.html
-#
-# Note: With MySQL resist the temptation to use '--compact'
-#       as this does not add the command to disable foreign-key checks
-#       (an important property of a dump)
 BACKUP_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'pg_dumpall --username=%s --no-password'
-                        ' | gzip > %s' % (PGUSER, BACKUP),
-    FLAVOUR_MYSQL: 'mysqldump --all-databases'
-                   ' --host=%s --port=%s'
-                   ' --user=%s --password="%s" | gzip > %s'
-                   % (MSHOST, MSPORT, MSUSER, MSPASS, BACKUP)
+                        ' | gzip > %s' % (PGUSER, BACKUP)
 }
 # Backup commands (for a single database).
 # Check comments above in case they're relevant here.
 BACKUP_COMMANDS_ONE_DB = {
     FLAVOUR_POSTGRESQL: 'pg_dump --username=%s --no-password %s'
-                        ' | gzip > %s' % (PGUSER, DATABASE, BACKUP),
-    FLAVOUR_MYSQL: 'mysqldump'
-                   ' --host=%s --port=%s'
-                   ' --user=%s --password="%s" --databases %s | gzip > %s'
-                   % (MSHOST, MSPORT, MSUSER, MSPASS, DATABASE, BACKUP)
+                        ' | gzip > %s' % (PGUSER, DATABASE, BACKUP)
 }
 
 # What 'flavour' of database do we expect to be backing up?
-# We currently support Postgres and MySQL.
 # The flavour is determined by the environment variables that we find.
 # If PGHOST has been defined then we'll expect a Postgres database
 #
 # This really only applies to B_HOURLY backups, as that's the only
 # type that actually creates new backup files.
-DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL if PGHOST else FLAVOUR_MYSQL
+DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL
 if DATABASE:
     BACKUP_CMD = BACKUP_COMMANDS_ONE_DB[DATABASE_FLAVOUR]
 else:
@@ -468,10 +416,6 @@ if BACKUP_TYPE in [B_HOURLY]:
             HAVE_ADMIN_PASS = True
             msg = '(supplied)'
         print('# PGADMINPASS = %s' % msg)
-    else:
-        print('# MSHOST = %s' % MSHOST)
-        print('# MSPORT = %s' % MSPORT)
-        print('# MSUSER = %s' % MSUSER)
 if AWS_BUCKET_NAME:
     print('# AWS_BUCKET_NAME = %s' % AWS_BUCKET_NAME)
 print('# RSYNC_HOST = %s' % RSYNC_HOST)
@@ -563,10 +507,6 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
     if not os.path.isfile(PGPASS_FILE):
         print('--] PGPASSFILE (%s) does not exist' % PGPASSFILE)
         error(ERROR_NO_PGPASS)
-else:
-    if BACKUP_TYPE in [B_HOURLY] and not MSPASS:
-        print('--] MSPASS has not been defined')
-        error(ERROR_NO_MSPASS)
 # Check backup types...
 if BACKUP_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY, B_MONTHLY]:
     print('--] Unexpected BACKUP_TYPE (%s)' % BACKUP_TYPE)

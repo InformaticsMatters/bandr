@@ -10,8 +10,8 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/informaticsmatters/bandr/badge)](https://www.codefactor.io/repository/github/informaticsmatters/bandr)
 
 This project contains a backup container image definition that can be
-used as a Kubernetes `CronJob` (or one-time `Job`) to backup PostgreSQL
-(or MYSQL) using configurable hourly, daily, weekly and monthly strategies.
+used as a Kubernetes `CronJob` (or one-time `Job`) to backup a PostgreSQL
+database using configurable hourly, daily, weekly and monthly strategies.
 
 There is also a recovery image that can be used as a Kubernetes
 `Job` in order to list and/or recover the latest backup or a specific
@@ -21,38 +21,13 @@ Images are built and published automatically using GitHub Actions.
 
 >   The image is built with PostgreSQL 12.
 
->   Backup does not work for MySQL 8 at the moment. In MySQL 8.0,
-    **caching_sha2_password** is the default authentication plugin
-    rather than **mysql_native_password**. See
-    https://stackoverflow.com/questions/49963383/authentication-plugin-caching-sha2-password
-
->   Although the image supports MySQL databases, controlled by
-    environment variables, this feature is deprecated and wil be remove
-    in a future release.
-
 >   For a detailed description of each utility refer to `backup.py` or
     `recovery.py`, where the operation and supported environment variables
     are explained.
 
-## Command-line tests (MySQL)
-You could start a simple MySQL 5.7 docker container with: -
+Automated playbooks that use these images in Kubernetes deeployments
+can be found in our [bandr-ansible] repository.
 
-    $ docker run -e MYSQL_ROOT_PASSWORD=my-secret-pw \
-        -e MYSQL_ROOT_HOST=172.17.0.1 -p 3306:3306 -d mysql:5.7.23
- 
-You could run something like this from the command-line
-to collect a MySQL backup in `/tmp`: -
+---
 
-    $ docker run -e MSHOST=172.17.0.1 \
-        -e MSUSER=root -e MSPASS=my-secret-pw \
-        -v /tmp:/backup informaticsmatters/sql-backup:latest
-
->   `172.17.01` is typically the default host in the Docker network and MySQL
-    must be listening on this host (see `MYSQL_ROOT_HOST`)
-    
-Use this to recover the latest backup: -
-
-    $ docker run -e MSHOST=172.17.0.1 \
-        -e MSUSER=root -e MSPASS=my-secret-pw \
-        -v /tmp:/backup informaticsmatters/sql-recovery:latest
- 
+[bandr-ansible]: https://github.com/InformaticsMatters/bandr-ansible
