@@ -19,13 +19,17 @@ A number of environment variables control this utility: -
     The timestamp. This can be the ISO-8601 portion of
     the original backup filename, 'NONE' or 'LATEST'.
     The provided string is converted to upper-case.
+
     If 'NONE' the recovery module simply displays
     all the backups on the backup volume.
+
     If 'LATEST' then the latest backup file on the volume
-    is used to recover the database from. If
-    a time is used the file whose name matches the
-    provided time will be used as a source of the recovery.
-    (default 'NONE')
+    is used to recover the database.
+
+    If a time is used (i.e. '2021-02-11T11:30:08Z') the first file whose name
+    includes the time will be used as a source of the recovery.
+
+    (default 'LATEST')
 
 Variables relating to extended features...
 
