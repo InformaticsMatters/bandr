@@ -2,8 +2,6 @@
 
 """A simple module to recover a backup.
 
-Expects Python 3 (recursive glob).
-
 The backup directory (BACKUP_ROOT_DIR) is expected to have
 been mounted as a volume in the container image.
 
@@ -35,8 +33,10 @@ A number of environment variables control this utility: -
 
     If set this instructs the recovery logic to expect the most recent
     backup to be no older than the designated number of hours.
-    If the most recent backup is older than this the recovery fails.
-    If set it must not be less than '1'.
+    If the most recent backup is older than this or there are no backups
+    at all the recovery fails.
+
+    If set it must be '1' or greater.
 
     Used primarily for automated recovery tests.
 
@@ -214,6 +214,8 @@ if LATEST_BACKUP_MAXIMUM_AGE_H_STR != '0':
         LATEST_BACKUP_MAXIMUM_AGE_H = int(LATEST_BACKUP_MAXIMUM_AGE_H_STR)
     except ValueError:
         error(ERROR_AGE_NOT_INT)
+if LATEST_BACKUP_MAXIMUM_AGE_H < 0:
+    LATEST_BACKUP_MAXIMUM_AGE_H = 0
 
 # Echo configuration...
 print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
