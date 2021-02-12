@@ -84,7 +84,7 @@ February 2021
 """
 
 from datetime import datetime, timezone
-import dateutil
+from dateutil import parser
 import glob
 import os
 import re
@@ -314,7 +314,7 @@ if LATEST_BACKUP_MAXIMUM_AGE_H and LATEST_BACKUP:
         error(ERROR_LATEST_HAD_NO_DATETIME)
     # Now calculate the age (in hours)
     timing_str = found.groups(1)[0]
-    latest_datetime = dateutil.parser.parse(timing_str)
+    latest_datetime = parser.parse(timing_str)
     latest_age = datetime.now(timezone.utc) - latest_datetime
     latest_age_h = int(latest_age.days * 24 + latest_age.seconds / 3600)
     if latest_age_h < 1:
