@@ -330,6 +330,8 @@ if LATEST_BACKUP_MAXIMUM_AGE_H and LATEST_BACKUP:
         print('--] I was told to expect an age of no more than %s hours.')
         print('--] You need to check that backups are still running.')
 #        error(ERROR_LATEST_TOO_OLD)
+    else:
+        print('--] OK - The latest backup is recent')
 elif LATEST_BACKUP_MAXIMUM_AGE_H and not LATEST_BACKUP:
     # Given maximum age but there appear to be no backups!
     print('--] There is no "latest" backup!')
