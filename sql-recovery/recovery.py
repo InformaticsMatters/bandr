@@ -350,7 +350,7 @@ if FROM_BACKUP in [B_NONE]:
 #####
 if not LATEST_BACKUP:
     print('--] Asked to recover LATEST but there are no backups. Sorry.')
-    write_termination_message('FAILURE (No Backups)')
+    write_termination_message('No Backups')
     sys.exit(0)
 
 BACKUP_FILE = None
@@ -366,7 +366,7 @@ else:
             break
 if not BACKUP_FILE:
     print('--] Could not find the backup. Leaving.')
-    write_termination_message('FAILURE (Backup not found)')
+    write_termination_message('Backup not found')
     sys.exit(0)
 
 # Unpack the backup to reveal the SQL
@@ -390,7 +390,7 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     # Remove the current backup
     os.remove(BACKUP)
     print('--] Leaving')
-    write_termination_message('FAILURE (Unpack failed)')
+    write_termination_message('Unpack failed')
     sys.exit(0)
 
 print("    $", RECOVERY_CMD)
@@ -413,7 +413,7 @@ if COMPLETED_PROCESS.returncode != 0:
     if not COMPLETED_PROCESS.stderr:
         print('--] There was nothing on stderr')
     print('--] Leaving (SQL can be found in dumpall.sql)')
-    write_termination_message('FAILURE (Recovery failed)')
+    write_termination_message('Recovery failed')
     sys.exit(0)
 elif COMPLETED_PROCESS.stderr:
     print('--] Although stderr was used the recovery was successful')
@@ -449,10 +449,10 @@ if DATABASE_EXPECTED_COUNT:
         COMPLETED_PROCESS = subprocess.run(COUNT_CMD,
                                            shell=True,
                                            stderr=subprocess.PIPE)
-        write_termination_message('FAILURE (Count %s failed)' % DATABASE_EXPECTED_COUNT)
+        write_termination_message('Count %s failed' % DATABASE_EXPECTED_COUNT)
         sys.exit(0)
 
 # Success if we get here
 write_termination_message()
 
-print('--] Done')
+print('--] Goodbye')

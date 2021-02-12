@@ -24,12 +24,11 @@ For example: -
     backup-2018-06-25T21:05:07Z-dumpall.sql.gz
 
 The time of the backup is the approximate time this utility is executed,
-and is the approximate time of the start of the backup process.
-
-The backup supports both PostgreSQL
+and is the approximate time of the start of the backup process. If the backup
+starts at 10:00 and takes 3 hours the backup time will be 10:00, not 13:00.
 
 When complete the content of the termination log (/dev/termination-log)
-will start with either SUCCESS or FAILURE.
+will start with the word 'SUCCESS' or 'FAILURE'.
 
 A number of environment variables control this image's behaviour: -
 
@@ -437,16 +436,18 @@ def pretty_size(number):
     return "{0:,.2f} {1:}Bytes".format(float_bytes, SCALE_UNITS[scale_factor])
 
 
-def write_termination_message(message='SUCCESS'):
+def write_termination_message(message=None):
     """Writes the message to '/dev/termination-log'.
     It's expected to be a short phrase that's written to '/dev/termination-log'
     that's available to Kubernetes once the container's finished.
 
-    To simplify automation the message must begin 'SUCCESS' or 'FAILURE'
-    the default, as clearly shown, is SUCCESS.
+    To simplify automation tools that inspect the termination log
+    the message begins 'SUCCESS' or 'FAILURE'.
+    'SUCCESS' is written if the message is 'None'.
     """
+    log_message = 'FAILURE (%s)' % message if message else 'SUCCESS'
     with open('/dev/termination-log', 'wt') as t_log_file:
-        t_log_file.write(message)
+        t_log_file.write(log_message)
 
 
 def error(error_no):
@@ -461,7 +462,7 @@ def error(error_no):
     """
     message = 'Encountered unrecoverable ERROR [%s] ... leaving' % error_no
     print('--] %s' % message)
-    write_termination_message('FAILURE (%s)' % error_no)
+    write_termination_message(error_no)
     sys.exit(0)
 
 
@@ -615,7 +616,7 @@ if BACKUP_TYPE == B_HOURLY:
     #####
     # The backup time is the start time of this job
     # (but ignore any fractions of a second and then add 'Z'
-    # to be very clear that it's UTC.
+    # to be very clear that it's UTC).
     BACKUP_TIME = BACKUP_START_TIME.isoformat().split('.')[0] + 'Z'
     COPY_BACKUP_FILE = '%s-%s-%s' % (BACKUP_FILE_PREFIX,
                                      BACKUP_TIME,
@@ -759,5 +760,7 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
             print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
         error(ERROR_RSYNC_FAILED)
 
+# Success if we get here
 write_termination_message()
+
 print('--] Goodbye')
