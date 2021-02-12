@@ -227,9 +227,11 @@ else:
 if DATABASE_EXPECTED_COUNT:
     print('# DATABASE_EXPECTED_COUNT = %s' % DATABASE_EXPECTED_COUNT)
 else:
-    print('# DATABASE_EXPECTED_COUNT = (unspecified)')
+    print('# DATABASE_EXPECTED_COUNT = (unset)')
 if LATEST_BACKUP_MAXIMUM_AGE_H:
     print('# LATEST_BACKUP_MAXIMUM_AGE_H = %s' % LATEST_BACKUP_MAXIMUM_AGE_H)
+else:
+    print('# LATEST_BACKUP_MAXIMUM_AGE_H = (unset - skipping backup age check)')
 HAVE_ADMIN_PASS = False
 if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
     print('# PGHOST = %s' % PGHOST)
@@ -318,16 +320,17 @@ if LATEST_BACKUP_MAXIMUM_AGE_H and LATEST_BACKUP:
     latest_age = datetime.now(timezone.utc) - latest_datetime
     latest_age_h = int(latest_age.days * 24 + latest_age.seconds / 3600)
     if latest_age_h < 1:
-        age_str = 'Less than 1 hour'
+        age_str = 'less than 1 hour'
     elif latest_age_h == 1:
-        age_str = 'More than 1 hour'
+        age_str = 'more than 1 hour'
     else:
-        age_str = 'More than %s hours' % latest_age_h
-    print('--] Age of latest backup: %s' % age_str)
+        age_str = 'more than %s hours' % latest_age_h
+    print('--] The ae of latest backup is %s' % age_str)
     # Too old?
     if latest_age_h > LATEST_BACKUP_MAXIMUM_AGE_H:
         print('--] ... Hold on ... The latest backup is too old!')
-        print('--] I was told to expect an age of no more than %s hours.')
+        print('--] I was expecting an age of no more than %s hours.'
+              % LATEST_BACKUP_MAXIMUM_AGE_H)
         print('--] You need to check that backups are still running.')
 #        error(ERROR_LATEST_TOO_OLD)
     else:
