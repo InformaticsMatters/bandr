@@ -320,15 +320,15 @@ if LATEST_BACKUP_MAXIMUM_AGE_H and LATEST_BACKUP:
     latest_age = datetime.now(timezone.utc) - latest_datetime
     latest_age_h = int(latest_age.days * 24 + latest_age.seconds / 3600)
     if latest_age_h < 1:
-        age_str = 'less than 1 hour'
+        age_str = 'less than an hour'
     elif latest_age_h == 1:
-        age_str = 'more than 1 hour'
+        age_str = 'about an hour'
     else:
-        age_str = 'more than %s hours' % latest_age_h
+        age_str = 'about %s hours' % latest_age_h
     print('--] The age of latest backup is %s' % age_str)
     # Too old?
     if latest_age_h > LATEST_BACKUP_MAXIMUM_AGE_H:
-        print('--] ... Hold on ... The latest backup is too old!')
+        print('--] ... Hold on ... The latest backup is TOO OLD!')
         print('--] I was expecting an age of no more than %s hours.'
               % LATEST_BACKUP_MAXIMUM_AGE_H)
         print('--] You need to check that backups are still running.')
