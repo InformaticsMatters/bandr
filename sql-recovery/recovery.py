@@ -451,6 +451,9 @@ if DATABASE_EXPECTED_COUNT:
                                            stderr=subprocess.PIPE)
         write_termination_message('Count %s failed' % DATABASE_EXPECTED_COUNT)
         sys.exit(0)
+    else:
+        print('--] OK - Found the expected number of databases (%s).'
+              % DATABASE_EXPECTED_COUNT)
 
 # Success if we get here
 write_termination_message()
