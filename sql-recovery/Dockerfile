@@ -27,7 +27,9 @@ ENV TZ=UTC
 
 # Populate the image...
 RUN /usr/local/bin/python -m pip install --upgrade pip && \
-    pip install boto3==1.14.32
+    pip install \
+        boto3==1.14.32 \
+        python-dateutil==2.8.1
 
 COPY recovery.py ${APP_ROOT}/
 COPY docker-entrypoint.sh ${APP_ROOT}/

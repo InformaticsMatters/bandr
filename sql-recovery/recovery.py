@@ -31,6 +31,15 @@ A number of environment variables control this utility: -
 
     (default 'LATEST')
 
+-   LATEST_BACKUP_MAXIMUM_AGE_H
+
+    If set this instructs the recovery logic to expect the most recent
+    backup to be no older than the designated number of hours.
+    If the most recent backup is older than this the recovery fails.
+    If set it must not be less than '1'.
+
+    Used primarily for automated recovery tests.
+
 Variables relating to extended features...
 
 -   DATABASE
@@ -74,13 +83,19 @@ Informatics Matters
 February 2021
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
+import dateutil
 import glob
 import os
+import re
 import subprocess
 import sys
 
-ERROR_NO_ROOT = 4
+ERROR_NO_ROOT = 1
+ERROR_AGE_NOT_INT = 2
+ERROR_LATEST_HAD_NO_DATETIME = 3
+ERROR_LATEST_TOO_OLD = 4
+ERROR_NO_LATEST = 5
 
 # Supported database flavours...
 FLAVOUR_POSTGRESQL = 'postgresql'
@@ -89,10 +104,16 @@ FLAVOUR_POSTGRESQL = 'postgresql'
 B_NONE = 'NONE'
 B_LATEST = 'LATEST'
 
+# Date/time extraction from backup filename
+BACKUP_DATETIME_RE = re.compile(r'-(\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ)-')
+
 # The backup time (NONE by default).
 # This is the time from the backup filename,
 # i.e. '2018-06-25T21:05:07Z'
 FROM_BACKUP = os.environ.get('FROM_BACKUP', 'LATEST').upper()
+# And the age of the latest backup?
+# '0' implies 'no interested'.
+LATEST_BACKUP_MAXIMUM_AGE_H_STR = os.environ.get('LATEST_BACKUP_MAXIMUM_AGE_H', '0')
 # A specific database?
 DATABASE = os.environ.get('DATABASE', '')
 # Expected count of databases (after recovery)
@@ -139,16 +160,18 @@ else:
 SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
 
 
-def write_termination_message(message='SUCCESS'):
+def write_termination_message(message=None):
     """Writes the message to '/dev/termination-log'.
     It's expected to be a short phrase that's written to '/dev/termination-log'
     that's available to Kubernetes once the container's finished.
 
-    To simplify automation the message must begin 'SUCCESS' or 'FAILURE'
-    the default, as clearly shown, is SUCCESS.
+    To simplify automation tools that inspect the termination log
+    the message begins 'SUCCESS' or 'FAILURE'.
+    'SUCCESS' is written if the message is 'None'.
     """
+    log_message = 'FAILURE (%s)' % message if message else 'SUCCESS'
     with open('/dev/termination-log', 'wt') as t_log_file:
-        t_log_file.write(message)
+        t_log_file.write(log_message)
 
 
 def pretty_size(number):
@@ -177,9 +200,20 @@ def error(error_no):
     :type error_no: ``int``
     """
     print('--] Encountered unrecoverable ERROR [%s] ... leaving' % error_no)
-    write_termination_message('FAILURE (%s)' % error_no)
+    write_termination_message(error_no)
     sys.exit(0)
 
+
+RECOVERY_START_TIME = datetime.now()
+print('--] Hello [%s]' % RECOVERY_START_TIME)
+
+# Convert latest backup maximum age?
+LATEST_BACKUP_MAXIMUM_AGE_H = 0
+if LATEST_BACKUP_MAXIMUM_AGE_H_STR != '0':
+    try:
+        LATEST_BACKUP_MAXIMUM_AGE_H = int(LATEST_BACKUP_MAXIMUM_AGE_H_STR)
+    except ValueError:
+        error(ERROR_AGE_NOT_INT)
 
 # Echo configuration...
 print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
@@ -192,6 +226,8 @@ if DATABASE_EXPECTED_COUNT:
     print('# DATABASE_EXPECTED_COUNT = %s' % DATABASE_EXPECTED_COUNT)
 else:
     print('# DATABASE_EXPECTED_COUNT = (unspecified)')
+if LATEST_BACKUP_MAXIMUM_AGE_H:
+    print('# LATEST_BACKUP_MAXIMUM_AGE_H = %s' % LATEST_BACKUP_MAXIMUM_AGE_H)
 HAVE_ADMIN_PASS = False
 if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
     print('# PGHOST = %s' % PGHOST)
@@ -202,33 +238,6 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
         msg = '(supplied)'
     print('# PGADMINPASS = %s' % msg)
 
-# Recover...
-#
-# 1. Check that the root backup directory exists
-# 2. Display all backups
-# 3. If BACKUP_FROM is 'NONE'
-#       Leave
-# 4.  If BACKUP_FROM is 'LATEST'
-#       use the most recent backup
-#    Else recover the named backup from a file whose name
-#       matches the provided string, normally an ISO8601 datetime string.
-#        a date and time (i.e. '2018-06-25T21:05:07Z')
-# 5. Once recovery is complete, if DATABASE_EXPECTED_COUNT is set
-#    we make suer that actual number of databases matches the
-#    supplied value
-
-RECOVERY_START_TIME = datetime.now()
-print('--] Hello [%s]' % RECOVERY_START_TIME)
-#####
-# 1 #
-#####
-if not os.path.isdir(BACKUP_ROOT_DIR):
-    print('--] Backup root directory does not exist (%s). Leaving.' % BACKUP_ROOT_DIR)
-    error(ERROR_NO_ROOT)
-
-#####
-# 2 #
-#####
 # If postgreSQL do we replace the 'default' .pgpass?
 # If the user's supplied a password using PGADMINPASS
 # then replace the current (default) .pgapss file with
@@ -240,6 +249,34 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL] and HAVE_ADMIN_PASS:
     password_entry = '*:*:*:*:%s' % PGADMINPASS
     pgpass_file.write(password_entry)
     pgpass_file.close()
+
+# Recover...
+#
+# 1. Check that the root backup directory exists
+# 2. Display all backups
+#      Generate an error if a maximum age is set
+#      and the latest is too old.
+# 3. If BACKUP_FROM is 'NONE'
+#       Leave
+# 4.  If BACKUP_FROM is 'LATEST'
+#       use the most recent backup
+#    Else recover the named backup from a file whose name
+#       matches the provided string, normally an ISO8601 datetime string.
+#        a date and time (i.e. '2018-06-25T21:05:07Z')
+# 5. Once recovery is complete, if DATABASE_EXPECTED_COUNT is set
+#    we make suer that actual number of databases matches the
+#    supplied value
+
+#####
+# 1 #
+#####
+if not os.path.isdir(BACKUP_ROOT_DIR):
+    print('--] Backup root directory does not exist (%s). Leaving.' % BACKUP_ROOT_DIR)
+    error(ERROR_NO_ROOT)
+
+#####
+# 2 #
+#####
 # A dictionary of backup files and their directories.
 LATEST_BACKUP = None
 KNOWN_BACKUPS = {}
@@ -263,6 +300,40 @@ if KNOWN_BACKUPS:
 else:
     print('    None')
 print('--] Latest backup: %s' % LATEST_BACKUP)
+
+if LATEST_BACKUP_MAXIMUM_AGE_H and LATEST_BACKUP:
+    # The backup filename style, when generated from our related backup image,
+    # is 'backup-2018-06-25T21:05:07Z-dumpall.sql.gz'.
+    #
+    # Let's take the data and time from the filename
+    found = BACKUP_DATETIME_RE.search(LATEST_BACKUP)
+    if not found:
+        print('--] Latest backup has no date/time')
+        error(ERROR_LATEST_HAD_NO_DATETIME)
+    # Now calculate the age (in hours)
+    timing_str = found.groups(1)[0]
+    latest_datetime = dateutil.parser.parse(timing_str)
+    latest_age = datetime.now(timezone.utc) - latest_datetime
+    latest_age_h = int(latest_age.days * 24 + latest_age.seconds / 3600)
+    if latest_age_h < 1:
+        age_str = 'Less than 1 hour'
+    elif latest_age_h == 1:
+        age_str = 'More than 1 hour'
+    else:
+        age_str = 'More than %s hours' % latest_age_h
+    print('--] Age of latest backup: %s' % age_str)
+    # Too old?
+    if latest_age_h > LATEST_BACKUP_MAXIMUM_AGE_H:
+        print('--] ... Hold on ... The latest backup is too old!')
+        print('--] I was told to expect an age of no more than %s hours.')
+        print('--] You need to check that backups are still running.')
+#        error(ERROR_LATEST_TOO_OLD)
+elif LATEST_BACKUP_MAXIMUM_AGE_H and not LATEST_BACKUP:
+    # Given maximum age but there appear to be no backups!
+    print('--] There is no "latest" backup!')
+    print('--] I was told to expect an age of no more than %s hours.')
+    print('--] You need to check that backups are running.')
+#    error(ERROR_NO_LATEST)
 
 #####
 # 3 #
