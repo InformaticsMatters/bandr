@@ -365,7 +365,6 @@ BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 # Backup commands (for all databases) for the various database flavours...
 BACKUP_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'pg_dumpall --username=%s --no-password'
-                        ' --clean --if-exists'
                         ' | gzip > %s' % (PGUSER, BACKUP)
 }
 # Backup commands (for a single database).
