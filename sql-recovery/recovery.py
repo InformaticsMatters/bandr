@@ -126,7 +126,7 @@ BACKUP_FILE_PREFIX = 'backup'
 
 # Recovery commands for the various database flavours...
 RECOVERY_COMMANDS = {
-    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -v ON_ERROR_STOP=1'
+    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s'
                         ' -f dumpall.sql template1'
                         ' > sql.out' % (PGHOST, PGUSER)
 }
