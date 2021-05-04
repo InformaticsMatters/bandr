@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-"""A simple module to recover a backup.
+"""A simple module to recover a backup created with pg_dumpall
+(as performed by our sql-backup container).
 
 The backup directory (BACKUP_ROOT_DIR) is expected to have
 been mounted as a volume in the container image.
@@ -41,12 +42,6 @@ A number of environment variables control this utility: -
     Used primarily for automated recovery tests.
 
 Variables relating to extended features...
-
--   DATABASE
-
-    If set only this database will be restored.
-    If undefined a complete recovery of the server (all databases)
-    will be performed.
 
 -   DATABASE_EXPECTED_COUNT
 
@@ -114,8 +109,6 @@ FROM_BACKUP = os.environ.get('FROM_BACKUP', 'LATEST').upper()
 # And the age of the latest backup?
 # '0' implies 'no interested'.
 LATEST_BACKUP_MAXIMUM_AGE_H_STR = os.environ.get('LATEST_BACKUP_MAXIMUM_AGE_H', '0')
-# A specific database?
-DATABASE = os.environ.get('DATABASE', '')
 # Expected count of databases (after recovery)
 DATABASE_EXPECTED_COUNT = os.environ.get('DATABASE_EXPECTED_COUNT', '')
 # Extract configuration from the environment.
@@ -134,14 +127,8 @@ BACKUP_FILE_PREFIX = 'backup'
 # Recovery commands for the various database flavours...
 RECOVERY_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -v ON_ERROR_STOP=1'
-                        ' -f dumpall.sql'
+                        ' -f dumpall.sql template1'
                         ' > sql.out' % (PGHOST, PGUSER)
-}
-# Recovery commands (for a single database).
-# Check comments above in case they're relevant here.
-RECOVERY_COMMANDS_ONE_DB = {
-    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -f dumpall.sql %s'
-                        ' > sql.out' % (PGHOST, PGUSER, DATABASE)
 }
 
 # What 'flavour' of database do we expect to recover?
@@ -149,10 +136,7 @@ RECOVERY_COMMANDS_ONE_DB = {
 # The flavour is determined by the environment variables that we find.
 # If PGHOST has been defined then we'll expect a Postgres database
 DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL
-if DATABASE:
-    RECOVERY_CMD = RECOVERY_COMMANDS_ONE_DB[DATABASE_FLAVOUR]
-else:
-    RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
+RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
 
 # Units for bytes, KBytes etc.
 # Used in pretty_size() and expected to be the base-10 units
@@ -220,10 +204,6 @@ if LATEST_BACKUP_MAXIMUM_AGE_H < 0:
 # Echo configuration...
 print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
 print('# FROM_BACKUP = %s' % FROM_BACKUP)
-if DATABASE:
-    print('# DATABASE = %s' % DATABASE)
-else:
-    print('# DATABASE = (unspecified - recovering all)')
 if DATABASE_EXPECTED_COUNT:
     print('# DATABASE_EXPECTED_COUNT = %s' % DATABASE_EXPECTED_COUNT)
 else:
