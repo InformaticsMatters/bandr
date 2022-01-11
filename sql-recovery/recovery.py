@@ -118,17 +118,22 @@ PGUSER = os.environ.get('PGUSER', 'postgres')
 PGADMINPASS = os.environ.get('PGADMINPASS', '-')
 HOME = os.environ['HOME']
 
-# The backup config.
 # The root dir, below which you're likely to find
 # hourly, daily, weekly and monthly backup directories.
 BACKUP_ROOT_DIR = '/backup'
 BACKUP_FILE_PREFIX = 'backup'
 
+# The recovery root dir, where backups are unpacked.
+RECOVERY_ROOT_DIR = '/recovery'
+
 # Recovery commands for the various database flavours...
 RECOVERY_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -v ON_ERROR_STOP=1'
-                        ' -f dumpall.sql template1'
-                        ' > sql.out' % (PGHOST, PGUSER)
+                        ' -f %s/dumpall.sql template1'
+                        ' > %s/sql.out' % (PGHOST,
+                                           PGUSER,
+                                           RECOVERY_ROOT_DIR,
+                                           RECOVERY_ROOT_DIR)
 }
 
 # What 'flavour' of database do we expect to recover?
@@ -362,7 +367,7 @@ print('--] Recovering from %s...' % BACKUP_FILE)
 #          remove anything that relates to creating or dropping postgres
 UNPACK_CMD = "gunzip -c %s" \
              " | egrep -v '^(CREATE|DROP) ROLE postgres;'" \
-             " > dumpall.sql" % BACKUP_FILE
+             " > %s/dumpall.sql" % (BACKUP_FILE, RECOVERY_ROOT_DIR)
 print("    $", UNPACK_CMD)
 COMPLETED_PROCESS = subprocess.run(UNPACK_CMD, shell=True, stderr=subprocess.PIPE)
 
@@ -397,7 +402,7 @@ if COMPLETED_PROCESS.returncode != 0:
     print('--] Recovery failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
     if not COMPLETED_PROCESS.stderr:
         print('--] There was nothing on stderr')
-    print('--] Leaving (SQL can be found in dumpall.sql)')
+    print('--] Leaving (SQL can be found in %s/dumpall.sql)' % RECOVERY_ROOT_DIR)
     write_termination_message('Recovery failed')
     sys.exit(0)
 elif COMPLETED_PROCESS.stderr:

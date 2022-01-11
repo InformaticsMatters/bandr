@@ -1,4 +1,8 @@
-FROM python:3.9.1-slim-buster
+FROM python:3.9.9-slim-buster
+
+# Create the 'exepcted' Recovery directory.
+# The recovery container may somethign mounted here, it may not.
+WORKDIR /recovery
 
 ENV APP_ROOT /code
 ENV HOME /root

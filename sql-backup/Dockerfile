@@ -1,4 +1,4 @@
-FROM python:3.9.1-slim-buster
+FROM python:3.9.9-slim-buster
 
 ENV APP_ROOT /code
 ENV HOME /root
