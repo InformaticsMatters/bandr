@@ -364,7 +364,12 @@ if not BACKUP_FILE:
 print('--] Recovering from %s...' % BACKUP_FILE)
 
 # Unpack - To avoid errors relating to changing the admin user
-#          remove anything that relates to creating or dropping that user
+#          remove anything that relates to creating or dropping that user.
+#
+#          Importantly, for this to work, the destination database server
+#          must have been started using an admin username that is the same
+#          as the admin user in the backup, i.e. source and destination
+#          database admin users must be the same.
 UNPACK_CMD = "gunzip -c %s" \
              " | egrep -v '^(CREATE|DROP) ROLE %s;'" \
              " > %s/dumpall.sql" % (BACKUP_FILE, PGUSER, RECOVERY_ROOT_DIR)
