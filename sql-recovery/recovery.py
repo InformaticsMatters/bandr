@@ -363,11 +363,11 @@ if not BACKUP_FILE:
 # and then use this file in the recovery command.
 print('--] Recovering from %s...' % BACKUP_FILE)
 
-# Unpack - To avoid errors relating to changing the postgres user
-#          remove anything that relates to creating or dropping postgres
+# Unpack - To avoid errors relating to changing the admin user
+#          remove anything that relates to creating or dropping that user
 UNPACK_CMD = "gunzip -c %s" \
-             " | egrep -v '^(CREATE|DROP) ROLE postgres;'" \
-             " > %s/dumpall.sql" % (BACKUP_FILE, RECOVERY_ROOT_DIR)
+             " | egrep -v '^(CREATE|DROP) ROLE %s;'" \
+             " > %s/dumpall.sql" % (BACKUP_FILE, PGUSER, RECOVERY_ROOT_DIR)
 print("    $", UNPACK_CMD)
 COMPLETED_PROCESS = subprocess.run(UNPACK_CMD, shell=True, stderr=subprocess.PIPE)
 
