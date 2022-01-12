@@ -80,7 +80,7 @@ Variables for PostgreSQL recovery...
 
 Alan Christie
 Informatics Matters
-February 2021
+January 2022
 """
 
 from datetime import datetime, timezone
@@ -155,7 +155,7 @@ RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
 
 # Units for bytes, KBytes etc.
 # Used in pretty_size() and expected to be the base-10 units
-# not the base 2 - i.e GBytes rather han GiBytes.
+# not the base 2 - i.e. GBytes rather han GiBytes.
 SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
 
 
