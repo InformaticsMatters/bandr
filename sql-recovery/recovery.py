@@ -73,6 +73,11 @@ Variables for PostgreSQL recovery...
     the default .pgpass file before the recovery begins.
     (default '-')
 
+-   DO_NOT_STOP_ON_ERROR
+
+    If you set this to any value the recovery will not stop if there
+    are errors. The default is to stop the recovery if there are errors.
+
 Alan Christie
 Informatics Matters
 February 2021
@@ -118,6 +123,9 @@ PGUSER = os.environ.get('PGUSER', 'postgres')
 PGADMINPASS = os.environ.get('PGADMINPASS', '-')
 HOME = os.environ['HOME']
 
+# Do not stop on error?
+DO_NOT_STOP_ON_ERROR = os.environ.get('DO_NOT_STOP_ON_ERROR', '')
+
 # The root dir, below which you're likely to find
 # hourly, daily, weekly and monthly backup directories.
 BACKUP_ROOT_DIR = '/backup'
@@ -127,11 +135,13 @@ BACKUP_FILE_PREFIX = 'backup'
 RECOVERY_ROOT_DIR = '/recovery'
 
 # Recovery commands for the various database flavours...
+ON_ERROR_STOP_STR = '' if DO_NOT_STOP_ON_ERROR else '-v ON_ERROR_STOP=1'
 RECOVERY_COMMANDS = {
-    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s -v ON_ERROR_STOP=1'
+    FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s %s'
                         ' -f %s/dumpall.sql template1'
                         ' > %s/sql.out' % (PGHOST,
                                            PGUSER,
+                                           ON_ERROR_STOP_STR,
                                            RECOVERY_ROOT_DIR,
                                            RECOVERY_ROOT_DIR)
 }
