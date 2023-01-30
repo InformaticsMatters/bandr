@@ -1,4 +1,4 @@
-FROM python:3.9.9-slim-buster
+FROM python:3.10.9-slim-buster
 
 # Create the 'exepcted' Recovery directory.
 # The recovery container may somethign mounted here, it may not.
@@ -24,7 +24,7 @@ RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
     apt-get -y install \
-        postgresql-client-12
+        postgresql-client-15
 
 # Set the image timezone...
 ENV TZ=UTC
