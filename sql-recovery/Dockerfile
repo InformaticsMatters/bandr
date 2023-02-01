@@ -19,12 +19,13 @@ RUN apt-get update && \
         sshpass \
         tzdata \
         wget
-# Install database clients
+# Install database client.
+# (See notes about the client in sql-backup/Dockerfile)
 RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
     apt-get -y install \
-        postgresql-client-13
+        postgresql-client-12
 
 # Set the image timezone...
 ENV TZ=UTC
