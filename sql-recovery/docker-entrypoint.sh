@@ -65,6 +65,11 @@ if [ -v BACKUP_VOLUME_IS_S3 ]; then
   echo "--] s3fs AWS_BUCKET_NAME=${AWS_BUCKET_NAME}"
   echo "--] s3fs S3FS_CMD_OPTIONS=${S3FS_CMD_OPTIONS}"
   s3fs ${AWS_BUCKET_NAME} ${S3FS_CMD_OPTIONS}
+
+  # And then wait (to avoid weird /backup root directories not existing)
+  echo "--] Sleeping for 4 seconds..."
+  sleep 4
+  echo "--] Slept"
 fi
 
 # Run the recovery logic
