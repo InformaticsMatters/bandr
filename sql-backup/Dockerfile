@@ -16,17 +16,11 @@ RUN apt-get update && \
         tzdata \
         wget
 # Install database client.
-# At PostgreSQL 13 we concounter problems with LOCALE when re-creating the DB.
-# The v13 backup creates the SQL (containing the LACALE option) but the v12 server
-# (being restored to) does not. Consequently we stop at v12, whcih _should_ be
-# able to restore to a v13+ server.
-#
-# For a discussion of the promlem see https://stackoverflow.com/questions/66052693
 RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
     apt-get -y install \
-        postgresql-client-12
+        postgresql-client-13
 
 # Set the image timezone...
 ENV TZ=UTC

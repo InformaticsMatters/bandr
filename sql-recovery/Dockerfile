@@ -25,7 +25,7 @@ RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
     apt-get -y install \
-        postgresql-client-12
+        postgresql-client-13
 
 # Set the image timezone...
 ENV TZ=UTC

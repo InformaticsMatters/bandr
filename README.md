@@ -19,7 +19,7 @@ backup.
 
 Images are built and published automatically using GitHub Actions.
 
->   The image is built with PostgreSQL 12.
+>   The image is built with PostgreSQL 13.
 
 >   For a detailed description of each utility refer to `backup.py` or
     `recovery.py`, where the operation and supported environment variables
