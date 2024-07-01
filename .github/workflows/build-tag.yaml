@@ -47,13 +47,13 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build and push sql-backup
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       with:
         tags: informaticsmatters/sql-backup:${{ env.GITHUB_REF_SLUG }}
         context: sql-backup
         push: true
     - name: Build and push sql-recovery
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       with:
         tags: informaticsmatters/sql-recovery:${{ env.GITHUB_REF_SLUG }}
         context: sql-recovery

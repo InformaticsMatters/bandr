@@ -40,12 +40,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Build sql-backup
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       with:
         context: sql-backup
         push: false
     - name: Build sql-recovery
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       with:
         context: sql-recovery
         push: false
