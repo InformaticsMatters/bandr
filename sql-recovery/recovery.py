@@ -383,7 +383,8 @@ print('--] Recovering from %s...' % BACKUP_FILE)
 #          database admin users must be the same.
 UNPACK_CMD = "gunzip -c %s" % BACKUP_FILE
 UNPACK_CMD += " | "
-UNPACK_CMD += "egrep -v \"(CREATE|DROP) ROLE IF EXISTS %s;" % PGUSER
+UNPACK_CMD += "egrep -v \"DROP ROLE IF EXISTS %s;" % PGUSER
+UNPACK_CMD += "|CREATE ROLE %s;" % PGUSER
 UNPACK_CMD += "|DROP DATABASE template1;"
 UNPACK_CMD += "|CREATE DATABASE template1 WITH TEMPLATE = template0 ENCODING = 'SQL_ASCII' LOCALE = 'C';\""
 UNPACK_CMD += " > %s/dumpall.sql" % RECOVERY_ROOT_DIR
