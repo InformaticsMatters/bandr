@@ -1,7 +1,7 @@
-FROM python:3.10.9-slim-buster
+FROM python:3.11.10-slim-bullseye
 
-ENV APP_ROOT /code
-ENV HOME /root
+ENV APP_ROOT=/code
+ENV HOME=/root
 WORKDIR ${APP_ROOT}
 
 # Install core packages
@@ -20,7 +20,7 @@ RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt-get update && \
     apt-get -y install \
-        postgresql-client-13
+        postgresql-client-15
 
 # Set the image timezone...
 ENV TZ=UTC
@@ -40,6 +40,6 @@ RUN chmod 755 ${APP_ROOT}/*.py && \
 
 # Force the binary layer of the stdout and stderr streams
 # to be unbuffered
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONUNBUFFERED=1
 
 CMD [ "./docker-entrypoint.sh" ]
