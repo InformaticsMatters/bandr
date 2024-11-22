@@ -131,8 +131,11 @@ Variables for PostgreSQL backups...
 Variables for (AWS) S3 backup (synchronisation).
 If the AWS_BUCKET_NAME is set the code assumes that the bucket is mapped
 to the expected backup mount point (BACKUP_ROOT_DIR) by the
-'docker-entrypoint.sh' script. The bucket appears as a normal R/W volume
-using 's3fs'.
+'docker-entrypoint.sh' script, which is achieved using 's3fs'.
+
+If you are using S3 you must not mount a backup directory at '/backup'
+as the underlying 'docker-entrypoint.sh' script will do this for you and
+any existing backup directory may cause an error or at the very least confusion.
 
 -   AWS_BUCKET_NAME
 
@@ -169,6 +172,9 @@ mount an S3 volume) then you need to set a number of variables: -
     you can use this to provide path-style requests.
     i.e. set to 'use_path_request_style' if required.
     This is used in the docker-entrypoint when setting-up s3fs.
+
+    This is actually passed to s3fs as a '-o' command-line option
+    so it could be any valid option.
 
 Variables for rsync remove copying support.
 If the RSYNC_HOST variable is set each successful hourly backup
