@@ -78,9 +78,31 @@ Variables for PostgreSQL recovery...
     If you set this to any value the recovery will not stop if there
     are errors. The default is to stop the recovery if there are errors.
 
+Variables for rclone bucket support.
+If the USE_RCLONE variable is set the code assumes that the user
+wants to synchronise the recovery directory with a remote bucket using rclone
+before recovery starts.
+
+Any RCLONE parameter can be set by providing the appropriate environment variable.
+ANy global configuration flag can be set (see https://rclone.org/flags/)
+using an `RCLONE_` prefix (See https://rclone.org/docs/#options-1).
+We therefore avoid using environment variables that begin RCLONE_ as these
+may conflict with built-in rclone variables.
+
+-   USE_RCLONE
+
+    Set (to anything) if you want to synchronise the recovery directory
+    with a remote (s3 bucket). An operation performed at the start of
+    the recovery process.
+
+-   USE_RCLONE_BUCKET_AND_PATH
+
+    The bucket and path to synchronise with.
+    Typically '/backup/database-10' or similar, but must start with a leading '/'.
+
 Alan Christie
 Informatics Matters
-January 2022
+November 2024
 """
 
 from datetime import datetime, timezone
@@ -96,6 +118,9 @@ ERROR_AGE_NOT_INT = 2
 ERROR_LATEST_HAD_NO_DATETIME = 3
 ERROR_LATEST_TOO_OLD = 4
 ERROR_NO_LATEST = 5
+ERROR_MISSING_RCLONE_BUCKET_AND_PATH = 6
+ERROR_MISSING_RCLONE_VARIABLE = 7
+ERROR_RCLONE_FAILED = 8
 
 # Supported database flavours...
 FLAVOUR_POSTGRESQL = 'postgresql'
@@ -122,6 +147,21 @@ PGHOST = os.environ.get('PGHOST', '')
 PGUSER = os.environ.get('PGUSER', 'postgres')
 PGADMINPASS = os.environ.get('PGADMINPASS', '-')
 HOME = os.environ['HOME']
+# AWS/rclone S3 material...
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+AWS_DEFAULT_REGION = os.environ.get('AWS_DEFAULT_REGION', '')
+
+# RCLONE configuration
+# Any RCLONE_ environment can be set to fine-tune the rclone service.
+# A configuration file wil be present (see /root/.config/rclone/rclone.conf)
+# with a basic remote called 'remote'. For S3 remotes (what supported here)
+# the user will need to define the standard AWS environment variables: -
+# - AWS_ACCESS_KEY_ID
+# - AWS_SECRET_ACCESS_KEY
+# - AWS_DEFAULT_REGION
+USE_RCLONE = os.environ.get('USE_RCLONE', '')
+USE_RCLONE_BUCKET_AND_PATH = os.environ.get('USE_RCLONE_BUCKET_AND_PATH', '')
 
 # Do not stop on error?
 DO_NOT_STOP_ON_ERROR = os.environ.get('DO_NOT_STOP_ON_ERROR', '')
@@ -157,6 +197,10 @@ RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
 # Used in pretty_size() and expected to be the base-10 units
 # not the base 2 - i.e. GBytes rather han GiBytes.
 SCALE_UNITS = ['', 'K', 'M', 'G', 'T']
+
+if USE_RCLONE:
+    print('# USE_RCLONE = %s' % USE_RCLONE)
+    print('# USE_RCLONE_BUCKET_AND_PATH = %s' % USE_RCLONE_BUCKET_AND_PATH)
 
 
 def write_termination_message(message=None):
@@ -216,6 +260,19 @@ if LATEST_BACKUP_MAXIMUM_AGE_H_STR != '0':
 if LATEST_BACKUP_MAXIMUM_AGE_H < 0:
     LATEST_BACKUP_MAXIMUM_AGE_H = 0
 
+# If if USE_RCLONE is defined
+# we must have a number of other variables
+if USE_RCLONE:
+    if not USE_RCLONE_BUCKET_AND_PATH:
+        print('--] If using RCLONE you must define USE_RCLONE_BUCKET_AND_PATH')
+        error(ERROR_MISSING_RCLONE_BUCKET_AND_PATH)
+    if not AWS_ACCESS_KEY_ID:
+        print('--] If using RCLONE you must define AWS_ACCESS_KEY_ID')
+        error(ERROR_MISSING_RCLONE_VARIABLE)
+    if not AWS_SECRET_ACCESS_KEY:
+        print('--] If using RCLONE you must define AWS_SECRET_ACCESS_KEY')
+        error(ERROR_MISSING_RCLONE_VARIABLE)
+
 # Echo configuration...
 print('# DATABASE_FLAVOUR = %s' % DATABASE_FLAVOUR)
 print('# FROM_BACKUP = %s' % FROM_BACKUP)
@@ -251,7 +308,8 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL] and HAVE_ADMIN_PASS:
 
 # Recover...
 #
-# 1. Check that the root backup directory exists
+# 0. Check that the root backup directory exists
+# 1. Rclone sync to the backup directory?
 # 2. Display all backups
 #      Generate an error if a maximum age is set
 #      and the latest is too old.
@@ -267,11 +325,37 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL] and HAVE_ADMIN_PASS:
 #    supplied value
 
 #####
-# 1 #
+# 0 #
 #####
 if not os.path.isdir(BACKUP_ROOT_DIR):
     print('--] Backup root directory does not exist (%s). Leaving.' % BACKUP_ROOT_DIR)
     error(ERROR_NO_ROOT)
+
+#####
+# 1 #
+#####
+if USE_RCLONE:
+    RCLONE_START_TIME = datetime.now()
+    print('--] Running rclone [%s]' % RCLONE_START_TIME)
+
+    RCLONE_CMD = 'rclone sync remote:%s %s' % (USE_RCLONE_BUCKET_AND_PATH, BACKUP_ROOT_DIR)
+    print("    $", RCLONE_CMD)
+
+    COMPLETED_PROCESS = subprocess.run(RCLONE_CMD, shell=True,
+                                       stderr=subprocess.PIPE,
+                                       check=False)
+
+    RCLONE_END_TIME = datetime.now()
+    print('--] rclone finished [%s]' % RCLONE_END_TIME)
+    ELAPSED_TIME = RCLONE_END_TIME - RCLONE_START_TIME
+    print('--] Elapsed time %s' % ELAPSED_TIME)
+
+    if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
+        print('--] rclone failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+        if COMPLETED_PROCESS.stderr:
+            print('--] stderr follows...')
+            print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
+        error(ERROR_RCLONE_FAILED)
 
 #####
 # 2 #
@@ -389,7 +473,10 @@ UNPACK_CMD += "|DROP DATABASE template1;"
 UNPACK_CMD += "|CREATE DATABASE template1 WITH TEMPLATE = template0 ENCODING = 'SQL_ASCII' LOCALE = 'C';\""
 UNPACK_CMD += " > %s/dumpall.sql" % RECOVERY_ROOT_DIR
 print("    $", UNPACK_CMD)
-COMPLETED_PROCESS = subprocess.run(UNPACK_CMD, shell=True, stderr=subprocess.PIPE)
+COMPLETED_PROCESS = subprocess.run(UNPACK_CMD,
+                                   shell=True,
+                                   stderr=subprocess.PIPE,
+                                   check=False)
 
 # Check subprocess exit code and stderr
 if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
@@ -404,7 +491,10 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     sys.exit(0)
 
 print("    $", RECOVERY_CMD)
-COMPLETED_PROCESS = subprocess.run(RECOVERY_CMD, shell=True, stderr=subprocess.PIPE)
+COMPLETED_PROCESS = subprocess.run(RECOVERY_CMD,
+                                   shell=True,
+                                   stderr=subprocess.PIPE,
+                                   check=False)
 
 RECOVERY_END_TIME = datetime.now()
 print('--] Recovery finished [%s]' % RECOVERY_END_TIME)
@@ -447,7 +537,8 @@ if DATABASE_EXPECTED_COUNT:
     print('$ %s' % CHECK_CMD)
     COMPLETED_PROCESS = subprocess.run(CHECK_CMD,
                                        shell=True,
-                                       stderr=subprocess.PIPE)
+                                       stderr=subprocess.PIPE,
+                                       check=False)
 
     if COMPLETED_PROCESS.returncode != 0:
         # Count failed.
@@ -458,7 +549,8 @@ if DATABASE_EXPECTED_COUNT:
         print('--] Expected %s but actual count is...' % DATABASE_EXPECTED_COUNT)
         COMPLETED_PROCESS = subprocess.run(COUNT_CMD,
                                            shell=True,
-                                           stderr=subprocess.PIPE)
+                                           stderr=subprocess.PIPE,
+                                           check=False)
         write_termination_message('Count %s failed' % DATABASE_EXPECTED_COUNT)
         sys.exit(0)
     else:

@@ -14,6 +14,7 @@ RUN apt-get update && \
         gnupg \
         lsb-release \
         openssh-client \
+        rclone \
         rsync \
         s3fs \
         sshpass \
@@ -39,9 +40,11 @@ RUN /usr/local/bin/python -m pip install --upgrade pip && \
 COPY recovery.py ${APP_ROOT}/
 COPY docker-entrypoint.sh ${APP_ROOT}/
 COPY pgpass ${HOME}/.pgpass
+COPY rclone.conf ${HOME}/.config/rclone/rclone.conf
 RUN chmod 755 ${APP_ROOT}/*.py && \
     chmod 755 ${APP_ROOT}/*.sh && \
     chmod 600 ${HOME}/.pgpass && \
+    chmod 755 ${HOME}/.config/rclone/rclone.conf && \
     mkdir ${HOME}/.ssh && \
     chmod 700 ${HOME}/.ssh
 
