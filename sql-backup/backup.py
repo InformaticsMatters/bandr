@@ -559,7 +559,8 @@ if BACKUP_PRIOR_TYPE not in [B_HOURLY, B_DAILY, B_WEEKLY]:
     print('--] Unexpected BACKUP_PRIOR_TYPE (%s)' % BACKUP_PRIOR_TYPE)
     error(ERROR_UNEXPECTED_PBU_TYPE)
 
-# Must have all or nothing with regard to AWS info
+# If AWS_BUCKET_NAME is defined
+# we must have all or nothing with regard to AWS info
 AWS_VAR_COUNT = 0
 if AWS_BUCKET_NAME:
     AWS_VAR_COUNT += 1
@@ -567,10 +568,12 @@ if AWS_ACCESS_KEY_ID:
     AWS_VAR_COUNT += 1
 if AWS_SECRET_ACCESS_KEY:
     AWS_VAR_COUNT += 1
-if AWS_VAR_COUNT not in [0, 3]:
-    print('--] If specifying AWS variables you must define them all')
+if AWS_BUCKET_NAME and AWS_VAR_COUNT != 3:
+    print('--] If specifying AWS_BUCKET_NAME you must define all the AWS variables')
     error(ERROR_INCOMPLETE_AWS)
 
+# If if USE_RCLONE is defined
+# we must have a number of other variables
 if USE_RCLONE:
     print('# USE_RCLONE = %s' % USE_RCLONE)
     if not USE_RCLONE_BUCKET_AND_PATH:
