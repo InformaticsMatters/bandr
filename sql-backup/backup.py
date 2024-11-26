@@ -834,6 +834,8 @@ if BACKUP_TYPE in [B_HOURLY] and USE_RCLONE:
     print('--] Running rclone [%s]' % RCLONE_START_TIME)
 
     RCLONE_CMD = 'rclone sync %s remote:%s' % (BACKUP_ROOT_DIR, USE_RCLONE_BUCKET_AND_PATH)
+    print("    $", RCLONE_CMD)
+
     COMPLETED_PROCESS = subprocess.run(RCLONE_CMD, shell=True,
                                        stderr=subprocess.PIPE,
                                        check=False)
