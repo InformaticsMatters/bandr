@@ -205,6 +205,24 @@ a remotely location designated by the related environment variables.
     The rsync target path.
     (default unset)
 
+Variables for rclone bucket support.
+If the USE_RCLONE variable is set the code assumes that the user
+wants to synchronise the backup directory with a remote bucket using rclone.
+Any RCLONE parameter can be set by providing the appropriate environment variable.
+ANy global configuration flag can be set (see https://rclone.org/flags/)
+using an `RCLONE_` prefix (See https://rclone.org/docs/#options-1).
+We therefore avoid using environment variables that begin RCLONE_ as these
+may conflict with built-in rclone variables.
+
+-   USE_RCLONE
+
+    Set if you want to synchronise the backup with a remote (s3 bucket).
+
+-   USE_RCLONE_BUCKET_AND_PATH
+
+    The bucket and path to synchronise with.
+    Typically '/backup/database-10' or similar.
+
 There are four values for BACKUP_TYPE: -
 
 - hourly    Typically the BACKUP_COUNT is 24.
@@ -314,6 +332,9 @@ ERROR_KEYSCAN_FAILED = 18
 ERROR_MISSING_AWS_CREDENTIALS = 19
 ERROR_FAILED_DELETING_BUCKET_OBJECT = 20
 ERROR_INCOMPLETE_AWS = 21
+ERROR_MISSING_RCLONE_BUCKET_AND_PATH = 22
+ERROR_MISSING_RCLONE_VARIABLE = 23
+ERROR_RCLONE_FAILED = 24
 
 # Hide the backup/rsync commands?
 HIDE_BACKUP_COMMAND = False
@@ -351,11 +372,23 @@ HOME = os.environ['HOME']
 AWS_BUCKET_NAME = os.environ.get('AWS_BUCKET_NAME', '')
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+AWS_DEFAULT_REGION = os.environ.get('AWS_DEFAULT_REGION', '')
 # RSYNC configuration
 RSYNC_HOST = os.environ.get('RSYNC_HOST', '')
 RSYNC_USER = os.environ.get('RSYNC_USER', '')
 RSYNC_PASS = os.environ.get('RSYNC_PASS', '')
 RSYNC_PATH = os.environ.get('RSYNC_PATH', '')
+
+# RCLONE configuration
+# Any RCLONE_ environment can be set to fine-tune the rclone service.
+# A configuration file wil be present (see /root/.config/rclone/rclone.conf)
+# with a basic remote called 'remote'. For S3 remotes (what supported here)
+# the user will need to define the standard AWS environment variables: -
+# - AWS_ACCESS_KEY_ID
+# - AWS_SECRET_ACCESS_KEY
+# - AWS_DEFAULT_REGION
+USE_RCLONE = os.environ.get('USE_RCLONE', '')
+USE_RCLONE_BUCKET_AND_PATH = os.environ.get('USE_RCLONE_BUCKET_AND_PATH', '')
 
 # The backup config.
 # The root dir, below which you're likely to find
@@ -425,7 +458,6 @@ if AWS_BUCKET_NAME:
     print('# AWS_BUCKET_NAME = %s' % AWS_BUCKET_NAME)
 print('# RSYNC_HOST = %s' % RSYNC_HOST)
 print('# RSYNC_PATH = %s' % RSYNC_PATH)
-
 
 def pretty_size(number):
     """Returns the number as a pretty number.
@@ -501,6 +533,8 @@ def error(error_no):
 #
 # 7. If RSYNC_HOST is set, rsync the backup volume to
 #    the named path.
+#
+# 8. If USE_RCLONE is set, rclone the backup volume to the bucket and path.
 
 BACKUP_START_TIME = datetime.now()
 print('--] Hello [%s]' % BACKUP_START_TIME)
@@ -533,6 +567,25 @@ if AWS_SECRET_ACCESS_KEY:
 if AWS_VAR_COUNT not in [0, 3]:
     print('--] If specifying AWS variables you must define them all')
     error(ERROR_INCOMPLETE_AWS)
+
+if USE_RCLONE:
+    print('# USE_RCLONE = %s' % USE_RCLONE)
+    if not USE_RCLONE_BUCKET_AND_PATH:
+        print('# Using RCLONE but USE_RCLONE_BUCKET_AND_PATH is not set')
+        error(ERROR_MISSING_RCLONE_BUCKET_AND_PATH)
+    if not AWS_ACCESS_KEY_ID:
+        print('# Using RCLONE but AWS_ACCESS_KEY_ID is not set')
+        error(ERROR_MISSING_RCLONE_VARIABLE)
+    if not AWS_SECRET_ACCESS_KEY:
+        print('# Using RCLONE but AWS_SECRET_ACCESS_KEY is not set')
+        error(ERROR_MISSING_RCLONE_VARIABLE)
+    if not AWS_DEFAULT_REGION:
+        print('# Using RCLONE but AWS_DEFAULT_REGION is not set')
+        error(ERROR_MISSING_RCLONE_VARIABLE)
+    print('# USE_RCLONE_BUCKET_AND_PATH = %s' % USE_RCLONE_BUCKET_AND_PATH)
+    print('# AWS_ACCESS_KEY_ID = ***')
+    print('# AWS_SECRET_ACCESS_KEY = ***')
+    print('# AWS_DEFAULT_REGION = %s' % AWS_DEFAULT_REGION)
 
 #####
 # 1 #
@@ -765,6 +818,31 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
             print('--] stderr follows...')
             print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
         error(ERROR_RSYNC_FAILED)
+
+#####
+# 8 #
+#####
+# Check whether the user also wants to rclone the backup content...
+if BACKUP_TYPE in [B_HOURLY] and USE_RCLONE:
+
+    RCLONE_START_TIME = datetime.now()
+    print('--] Running rclone [%s]' % RCLONE_START_TIME)
+
+    RCLONE_CMD = 'rclone sync %s remote:%s' % (BACKUP_ROOT_DIR, USE_RCLONE_BUCKET_AND_PATH)
+    COMPLETED_PROCESS = subprocess.run(RCLONE_CMD, shell=True,
+                                       stderr=subprocess.PIPE)
+
+    RCLONE_END_TIME = datetime.now()
+    print('--] rclone finished [%s]' % RCLONE_END_TIME)
+    ELAPSED_TIME = RCLONE_END_TIME - RCLONE_START_TIME
+    print('--] Elapsed time %s' % ELAPSED_TIME)
+
+    if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
+        print('--] rclone failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
+        if COMPLETED_PROCESS.stderr:
+            print('--] stderr follows...')
+            print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
+        error(ERROR_RCLONE_FAILED)
 
 # Success if we get here
 write_termination_message()
