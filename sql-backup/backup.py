@@ -216,12 +216,14 @@ may conflict with built-in rclone variables.
 
 -   USE_RCLONE
 
-    Set if you want to synchronise the backup with a remote (s3 bucket).
+    Set (to anything) if you want to synchronise the backup directory
+    with a remote (s3 bucket). An operation performed at the end of
+    the backup process.
 
 -   USE_RCLONE_BUCKET_AND_PATH
 
     The bucket and path to synchronise with.
-    Typically '/backup/database-10' or similar.
+    Typically '/backup/database-10' or similar, but must start with a leading '/'.
 
 There are four values for BACKUP_TYPE: -
 
@@ -298,7 +300,7 @@ by Kubernetes).
 
 Alan Christie
 Informatics Matters
-February 2021
+November 2024
 """
 
 import glob
