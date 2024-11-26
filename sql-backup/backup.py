@@ -585,13 +585,10 @@ if USE_RCLONE:
     if not AWS_SECRET_ACCESS_KEY:
         print('# Using RCLONE but AWS_SECRET_ACCESS_KEY is not set')
         error(ERROR_MISSING_RCLONE_VARIABLE)
-    if not AWS_DEFAULT_REGION:
-        print('# Using RCLONE but AWS_DEFAULT_REGION is not set')
-        error(ERROR_MISSING_RCLONE_VARIABLE)
     print('# USE_RCLONE_BUCKET_AND_PATH = %s' % USE_RCLONE_BUCKET_AND_PATH)
     print('# AWS_ACCESS_KEY_ID = ***')
     print('# AWS_SECRET_ACCESS_KEY = ***')
-    print('# AWS_DEFAULT_REGION = %s' % AWS_DEFAULT_REGION)
+    print('# AWS_DEFAULT_REGION = "%s"' % AWS_DEFAULT_REGION)
 
 #####
 # 1 #
