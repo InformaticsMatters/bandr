@@ -462,6 +462,10 @@ if AWS_BUCKET_NAME:
 print('# RSYNC_HOST = %s' % RSYNC_HOST)
 print('# RSYNC_PATH = %s' % RSYNC_PATH)
 
+if USE_RCLONE:
+    print('# USE_RCLONE = %s' % USE_RCLONE)
+    print('# USE_RCLONE_BUCKET_AND_PATH = %s' % USE_RCLONE_BUCKET_AND_PATH)
+
 def pretty_size(number):
     """Returns the number as a pretty number.
     i.e. 2,971,821,278 is returned as '2.97 GBytes'
@@ -575,20 +579,15 @@ if AWS_BUCKET_NAME and AWS_VAR_COUNT != 3:
 # If if USE_RCLONE is defined
 # we must have a number of other variables
 if USE_RCLONE:
-    print('# USE_RCLONE = %s' % USE_RCLONE)
     if not USE_RCLONE_BUCKET_AND_PATH:
-        print('# Using RCLONE but USE_RCLONE_BUCKET_AND_PATH is not set')
+        print('--] If using RCLONE you must define USE_RCLONE_BUCKET_AND_PATH')
         error(ERROR_MISSING_RCLONE_BUCKET_AND_PATH)
     if not AWS_ACCESS_KEY_ID:
-        print('# Using RCLONE but AWS_ACCESS_KEY_ID is not set')
+        print('--] If using RCLONE you must define AWS_ACCESS_KEY_ID')
         error(ERROR_MISSING_RCLONE_VARIABLE)
     if not AWS_SECRET_ACCESS_KEY:
-        print('# Using RCLONE but AWS_SECRET_ACCESS_KEY is not set')
+        print('--] If using RCLONE you must define AWS_SECRET_ACCESS_KEY')
         error(ERROR_MISSING_RCLONE_VARIABLE)
-    print('# USE_RCLONE_BUCKET_AND_PATH = %s' % USE_RCLONE_BUCKET_AND_PATH)
-    print('# AWS_ACCESS_KEY_ID = ***')
-    print('# AWS_SECRET_ACCESS_KEY = ***')
-    print('# AWS_DEFAULT_REGION = "%s"' % AWS_DEFAULT_REGION)
 
 #####
 # 1 #
