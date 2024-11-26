@@ -446,6 +446,9 @@ else:
     print('# DATABASE = (unspecified - backing up all)')
 if BACKUP_TYPE in [B_HOURLY]:
     if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL]:
+        result = subprocess.run(['psql', '--version'], stdout=subprocess.PIPE, check=False)
+        DATABASE_VERSION = result.stdout.decode("utf-8").strip()
+        print('# DATABASE_VERSION = %s' % DATABASE_VERSION)
         print('# PGHOST = %s' % PGHOST)
         print('# PGUSER = %s' % PGUSER)
         print('# PGPASSFILE = %s' % PGPASSFILE)
@@ -641,7 +644,8 @@ if BACKUP_TYPE == B_HOURLY:
     if not HIDE_BACKUP_COMMAND:
         print("    $", BACKUP_CMD)
     COMPLETED_PROCESS = subprocess.run(BACKUP_CMD, shell=True,
-                                       stderr=subprocess.PIPE)
+                                       stderr=subprocess.PIPE,
+                                       check=False)
     BACKUP_END_TIME = datetime.now()
     print('--] Backup finished [%s]' % BACKUP_END_TIME)
     ELAPSED_TIME = BACKUP_END_TIME - BACKUP_START_TIME
@@ -778,7 +782,8 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
     print('--] Running ssh-keyscan...')
     CMD = 'ssh-keyscan %s >> ~/.ssh/known_hosts' % RSYNC_HOST
     COMPLETED_PROCESS = subprocess.run(CMD, shell=True,
-                                       stderr=subprocess.PIPE)
+                                       stderr=subprocess.PIPE,
+                                       check=False)
     if COMPLETED_PROCESS.returncode != 0:
         print('--] Keyscan failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
         if COMPLETED_PROCESS.stderr:
@@ -805,7 +810,8 @@ if BACKUP_TYPE in [B_HOURLY] and RSYNC_HOST:
     # Now prefix with the password details using sshpass...
     RSYNC_CMD = 'sshpass -p "%s" %s' % (RSYNC_PASS, RSYNC_CMD)
     COMPLETED_PROCESS = subprocess.run(RSYNC_CMD, shell=True,
-                                       stderr=subprocess.PIPE)
+                                       stderr=subprocess.PIPE,
+                                       check=False)
 
     RSYNC_END_TIME = datetime.now()
     print('--] rsync finished [%s]' % RSYNC_END_TIME)
@@ -830,7 +836,8 @@ if BACKUP_TYPE in [B_HOURLY] and USE_RCLONE:
 
     RCLONE_CMD = 'rclone sync %s remote:%s' % (BACKUP_ROOT_DIR, USE_RCLONE_BUCKET_AND_PATH)
     COMPLETED_PROCESS = subprocess.run(RCLONE_CMD, shell=True,
-                                       stderr=subprocess.PIPE)
+                                       stderr=subprocess.PIPE,
+                                       check=False)
 
     RCLONE_END_TIME = datetime.now()
     print('--] rclone finished [%s]' % RCLONE_END_TIME)
