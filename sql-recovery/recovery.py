@@ -457,21 +457,11 @@ if not BACKUP_FILE:
 # and then use this file in the recovery command.
 print('--] Recovering from %s...' % BACKUP_FILE)
 
-# Unpack - To avoid errors relating to changing the PGUSER user
-#          remove anything that relates to creating or dropping that user
-#          and anything relating to dropping or creating the template1 database.
-#
-#          Importantly, for this to work, the destination database server
+# Unpack - Importantly, for this to work, the destination database server
 #          must have been started using an admin username that is the same
 #          as the admin user in the backup, i.e. source and destination
 #          database admin users must be the same.
-UNPACK_CMD = "gunzip -c %s" % BACKUP_FILE
-UNPACK_CMD += " | "
-UNPACK_CMD += "egrep -v \"DROP ROLE IF EXISTS %s;" % PGUSER
-UNPACK_CMD += "|CREATE ROLE %s;" % PGUSER
-UNPACK_CMD += "|DROP DATABASE template1;"
-UNPACK_CMD += "|CREATE DATABASE template1 WITH TEMPLATE = template0 ENCODING = 'SQL_ASCII' LOCALE = 'C';\""
-UNPACK_CMD += " > %s/dumpall.sql" % RECOVERY_ROOT_DIR
+UNPACK_CMD = "gunzip -c %s > %s/dumpall.sql" % (BACKUP_FILE, RECOVERY_ROOT_DIR)
 print("    $", UNPACK_CMD)
 COMPLETED_PROCESS = subprocess.run(UNPACK_CMD,
                                    shell=True,
