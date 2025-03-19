@@ -52,6 +52,11 @@ Variables relating to extended features...
 
     Used primarily for automated recovery tests.
 
+-   DATABASE
+
+    If set only this database will be restored,
+    and the input is expected to be the result of a prior pg_dump.
+
 Variables for PostgreSQL recovery...
 
 -   PGHOST
@@ -141,6 +146,8 @@ FROM_BACKUP = os.environ.get('FROM_BACKUP', 'LATEST').upper()
 LATEST_BACKUP_MAXIMUM_AGE_H_STR = os.environ.get('LATEST_BACKUP_MAXIMUM_AGE_H', '0')
 # Expected count of databases (after recovery)
 DATABASE_EXPECTED_COUNT = os.environ.get('DATABASE_EXPECTED_COUNT', '')
+# A specific database?
+DATABASE = os.environ.get('DATABASE', '')
 # Extract configuration from the environment.
 # Postgres material...
 PGHOST = os.environ.get('PGHOST', '')
@@ -185,13 +192,28 @@ RECOVERY_COMMANDS = {
                                            RECOVERY_ROOT_DIR,
                                            RECOVERY_ROOT_DIR)
 }
+# Backup commands (for a single database).
+# Check comments above in case they're relevant here.
+RECOVERY_COMMANDS_ONE_DB = {
+    FLAVOUR_POSTGRESQL: 'psql -X -h %s -U %s %s %s'
+                        ' -f %s/dumpall.sql'
+                        ' > %s/sql.out' % (PGHOST,
+                                           PGUSER,
+                                           ON_ERROR_STOP_STR,
+                                           DATABASE,
+                                           RECOVERY_ROOT_DIR,
+                                           RECOVERY_ROOT_DIR)
+}
 
 # What 'flavour' of database do we expect to recover?
 # We currently support Postgres.
 # The flavour is determined by the environment variables that we find.
 # If PGHOST has been defined then we'll expect a Postgres database
 DATABASE_FLAVOUR = FLAVOUR_POSTGRESQL
-RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
+if DATABASE:
+    RECOVERY_CMD = RECOVERY_COMMANDS_ONE_DB[DATABASE_FLAVOUR]
+else:
+    RECOVERY_CMD = RECOVERY_COMMANDS[DATABASE_FLAVOUR]
 
 # Units for bytes, KBytes etc.
 # Used in pretty_size() and expected to be the base-10 units
