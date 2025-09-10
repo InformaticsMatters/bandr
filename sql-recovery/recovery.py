@@ -173,13 +173,9 @@ USE_RCLONE_BUCKET_AND_PATH = os.environ.get('USE_RCLONE_BUCKET_AND_PATH', '')
 # Do not stop on error?
 DO_NOT_STOP_ON_ERROR = os.environ.get('DO_NOT_STOP_ON_ERROR', '')
 
-# The root dir, below which you're likely to find
-# hourly, daily, weekly and monthly backup directories.
-BACKUP_ROOT_DIR = '/backup'
-BACKUP_FILE_PREFIX = 'backup'
-
 # The recovery root dir, where backups are unpacked.
 RECOVERY_ROOT_DIR = '/recovery'
+BACKUP_FILE_PREFIX = 'backup'
 
 # Recovery commands for the various database flavours...
 ON_ERROR_STOP_STR = '' if DO_NOT_STOP_ON_ERROR else '-v ON_ERROR_STOP=1'
@@ -349,8 +345,8 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL] and HAVE_ADMIN_PASS:
 #####
 # 0 #
 #####
-if not os.path.isdir(BACKUP_ROOT_DIR):
-    print('--] Backup root directory does not exist (%s). Leaving.' % BACKUP_ROOT_DIR)
+if not os.path.isdir(RECOVERY_ROOT_DIR):
+    print('--] Recovery root directory does not exist (%s). Leaving.' % RECOVERY_ROOT_DIR)
     error(ERROR_NO_ROOT)
 
 #####
@@ -360,7 +356,7 @@ if USE_RCLONE:
     RCLONE_START_TIME = datetime.now()
     print('--] Running rclone [%s]' % RCLONE_START_TIME)
 
-    RCLONE_CMD = 'rclone sync remote:%s %s' % (USE_RCLONE_BUCKET_AND_PATH, BACKUP_ROOT_DIR)
+    RCLONE_CMD = 'rclone sync remote:%s %s' % (USE_RCLONE_BUCKET_AND_PATH, RECOVERY_ROOT_DIR)
     print("    $", RCLONE_CMD)
 
     COMPLETED_PROCESS = subprocess.run(RCLONE_CMD, shell=True,
@@ -385,7 +381,7 @@ if USE_RCLONE:
 # A dictionary of backup files and their directories.
 LATEST_BACKUP = None
 KNOWN_BACKUPS = {}
-FILE_SEARCH = os.path.join(BACKUP_ROOT_DIR, '**', BACKUP_FILE_PREFIX + '*')
+FILE_SEARCH = os.path.join(RECOVERY_ROOT_DIR, '**', BACKUP_FILE_PREFIX + '*')
 BACKUPS = glob.glob(FILE_SEARCH)
 for BACKUP in BACKUPS:
     FILENAME = os.path.basename(BACKUP)
