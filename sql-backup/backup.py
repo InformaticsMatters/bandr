@@ -94,6 +94,10 @@ Variables relating to extended features...
     If undefined a complete backup of the server (all databases)
     will be performed.
 
+    If a specific database if named the backup file will be
+    the name of the database (e.g. 'frag.sql.gz') otherwise
+    it will be called 'dumpall.sql.gz').
+
 Variables for PostgreSQL backups...
 
 -   PGHOST
@@ -396,8 +400,8 @@ USE_RCLONE_BUCKET_AND_PATH = os.environ.get('USE_RCLONE_BUCKET_AND_PATH', '')
 # The root dir, below which you're likely to find
 # hourly, daily, weekly and monthly backup directories.
 BACKUP_ROOT_DIR = '/backup'
-BACKUP_LIVE_FILE = 'dumpall.sql.gz' # The new file
-BACKUP_FILE_PREFIX = 'backup'       # Prefix for older files
+BACKUP_LIVE_FILE = f'{DATABASE}.sql.gz' if DATABASE else 'dumpall.sql.gz'
+BACKUP_FILE_PREFIX = 'backup'  # Prefix for older files
 
 BACKUP_PRIOR_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_PRIOR_TYPE)
 BACKUP_DIR = os.path.join(BACKUP_ROOT_DIR, BACKUP_TYPE)

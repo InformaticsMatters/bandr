@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""A simple module to recover a backup created with pg_dumpall
+"""A simple module to recover a backup created with pg_dumpall (or pg_dump)
 (as performed by our sql-backup container).
 
 The backup directory (BACKUP_ROOT_DIR) is expected to have
@@ -185,7 +185,7 @@ RECOVERY_ROOT_DIR = '/recovery'
 ON_ERROR_STOP_STR = '' if DO_NOT_STOP_ON_ERROR else '-v ON_ERROR_STOP=1'
 RECOVERY_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s %s'
-                        ' -f %s/dumpall.sql template1'
+                        ' -f %s/.sql template1'
                         ' > %s/sql.out' % (PGHOST,
                                            PGUSER,
                                            ON_ERROR_STOP_STR,
@@ -196,7 +196,7 @@ RECOVERY_COMMANDS = {
 # Check comments above in case they're relevant here.
 RECOVERY_COMMANDS_ONE_DB = {
     FLAVOUR_POSTGRESQL: 'psql -X -h %s -U %s %s %s'
-                        ' -f %s/dumpall.sql'
+                        ' -f %s/backup.sql'
                         ' > %s/sql.out' % (PGHOST,
                                            PGUSER,
                                            ON_ERROR_STOP_STR,
