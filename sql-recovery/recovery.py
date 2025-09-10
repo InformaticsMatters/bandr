@@ -175,29 +175,32 @@ DO_NOT_STOP_ON_ERROR = os.environ.get('DO_NOT_STOP_ON_ERROR', '')
 
 # The recovery root dir, where backups are unpacked.
 RECOVERY_ROOT_DIR = '/recovery'
+DECOMPRESSED_RECOVERY_NAME = 'recovery'
 BACKUP_FILE_PREFIX = 'backup'
 
 # Recovery commands for the various database flavours...
 ON_ERROR_STOP_STR = '' if DO_NOT_STOP_ON_ERROR else '-v ON_ERROR_STOP=1'
 RECOVERY_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'psql -q -h %s -U %s %s'
-                        ' -f %s/.sql template1'
+                        ' -f %s/%s.sql template1'
                         ' > %s/sql.out' % (PGHOST,
                                            PGUSER,
                                            ON_ERROR_STOP_STR,
                                            RECOVERY_ROOT_DIR,
+                                           DECOMPRESSED_RECOVERY_NAME,
                                            RECOVERY_ROOT_DIR)
 }
 # Backup commands (for a single database).
 # Check comments above in case they're relevant here.
 RECOVERY_COMMANDS_ONE_DB = {
     FLAVOUR_POSTGRESQL: 'psql -X -h %s -U %s %s %s'
-                        ' -f %s/backup.sql'
+                        ' -f %s/%s.sql'
                         ' > %s/sql.out' % (PGHOST,
                                            PGUSER,
                                            ON_ERROR_STOP_STR,
                                            DATABASE,
                                            RECOVERY_ROOT_DIR,
+                                           DECOMPRESSED_RECOVERY_NAME,
                                            RECOVERY_ROOT_DIR)
 }
 
@@ -479,7 +482,7 @@ print('--] Recovering from %s...' % BACKUP_FILE)
 #          must have been started using an admin username that is the same
 #          as the admin user in the backup, i.e. source and destination
 #          database admin users must be the same.
-UNPACK_CMD = "gunzip -c %s > %s/recovery.sql" % (BACKUP_FILE, RECOVERY_ROOT_DIR)
+UNPACK_CMD = "gunzip -c %s > %s/%s.sql" % (BACKUP_FILE, RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME)
 print("    $", UNPACK_CMD)
 COMPLETED_PROCESS = subprocess.run(UNPACK_CMD,
                                    shell=True,
@@ -520,7 +523,7 @@ if COMPLETED_PROCESS.returncode != 0:
     print('--] Recovery failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
     if not COMPLETED_PROCESS.stderr:
         print('--] There was nothing on stderr')
-    print('--] Leaving (SQL can be found in %s/recovery.sql)' % RECOVERY_ROOT_DIR)
+    print('--] Leaving (SQL can be found in %s/%s.sql)' % (RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME))
     write_termination_message('Recovery failed')
     sys.exit(0)
 elif COMPLETED_PROCESS.stderr:
