@@ -479,7 +479,7 @@ print('--] Recovering from %s...' % BACKUP_FILE)
 #          must have been started using an admin username that is the same
 #          as the admin user in the backup, i.e. source and destination
 #          database admin users must be the same.
-UNPACK_CMD = "gunzip -c %s > %s/dumpall.sql" % (BACKUP_FILE, RECOVERY_ROOT_DIR)
+UNPACK_CMD = "gunzip -c %s > %s/recovery.sql" % (BACKUP_FILE, RECOVERY_ROOT_DIR)
 print("    $", UNPACK_CMD)
 COMPLETED_PROCESS = subprocess.run(UNPACK_CMD,
                                    shell=True,
@@ -520,7 +520,7 @@ if COMPLETED_PROCESS.returncode != 0:
     print('--] Recovery failed (returncode=%s)' % COMPLETED_PROCESS.returncode)
     if not COMPLETED_PROCESS.stderr:
         print('--] There was nothing on stderr')
-    print('--] Leaving (SQL can be found in %s/dumpall.sql)' % RECOVERY_ROOT_DIR)
+    print('--] Leaving (SQL can be found in %s/recovery.sql)' % RECOVERY_ROOT_DIR)
     write_termination_message('Recovery failed')
     sys.exit(0)
 elif COMPLETED_PROCESS.stderr:
