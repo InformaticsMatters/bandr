@@ -60,22 +60,6 @@ A number of environment variables control this image's behaviour: -
     Used only if BACKUP_TYPE is not 'hourly'.
     (default 'hourly')
 
--   BACKUP_PRIOR_COUNT
-
-    For types other than 'hourly' this is the number of
-    backup files in the prior backup type that
-    represent a 'full' set. When the prior backup directory
-    contains this number of files the oldest is copied to
-    this backup directory. i.e. if this is a 'weekly'
-    backup and the prior type is 'daily' and you are
-    collecting '6' daily files a weekly file will be
-    created form the oldest daily directory when there are
-    '24' files in the hourly directory. This is designed
-    to prevent a backup form, copying a prior file until
-    there are sufficient prior files.
-    Used only if BACKUP_TYPE is not 'hourly'.
-    (default '24')
-
 -   BACKUP_PRE_EXIT_SLEEP_M
 
     If set, this is the time (in minutes) that the
@@ -234,28 +218,24 @@ There are four values for BACKUP_TYPE: -
 - hourly    Typically the BACKUP_COUNT is 24.
             This type always starts by creating a new backup.
             It is the shortest backup period and writes to the 'hourly'
-            directory. This backup is expected to be invoked hourly.
-            BACKUP_PRIOR_COUNT is ignored.
+            directory.
 
 - daily     This backup is configured to run once a day (at a time
             defined by the user). It copies the oldest backup from the
-            'hourly' directory into the 'daily' directory but only when the
-            hourly directory contains BACKUP_PRIOR_COUNT backup files
-            (normally 24). It makes sure that no more than BACKUP_COUNT
+            'hourly' directory into the 'daily' directory.
+            It makes sure that no more than BACKUP_COUNT
             files exist in the daily directory.
 
 - weekly    This backup is configured to run once a week (at a time
             defined by the user). It copies the oldest backup from the
-            'daily' directory into the 'weekly' directory but only when the
-            daily directory contains BACKUP_PRIOR_COUNT backup files
-            (normally 7). It makes sure that no more than BACKUP_COUNT
+            'daily' directory into the 'weekly' directory.
+            It makes sure that no more than BACKUP_COUNT
             files exist in the weekly directory.
 
 - monthly   This backup is configured to run once a month (at a time
             defined by the user). It copies the oldest backup from the
-            'weekly' directory into the 'monthly' directory but only when the
-            weekly directory contains BACKUP_PRIOR_COUNT backup files
-            (normally 4). It makes sure that no more than BACKUP_COUNT
+            'weekly' directory into the 'monthly' directory.
+            It makes sure that no more than BACKUP_COUNT
             files exist in the monthly directory.
 
 How does it work? (PostgreSQL)
@@ -361,7 +341,6 @@ B_MONTHLY = 'monthly'
 BACKUP_TYPE = os.environ.get('BACKUP_TYPE', B_HOURLY).lower()
 BACKUP_COUNT = int(os.environ.get('BACKUP_COUNT', '24'))
 BACKUP_PRIOR_TYPE = os.environ.get('BACKUP_PRIOR_TYPE', B_HOURLY).lower()
-BACKUP_PRIOR_COUNT = int(os.environ.get('BACKUP_PRIOR_COUNT', '24'))
 BACKUP_PRE_EXIT_SLEEP_M = int(os.environ.get('BACKUP_PRE_EXIT_SLEEP_M', '0'))
 # A specific database?
 DATABASE = os.environ.get('DATABASE', '')
@@ -444,7 +423,6 @@ print('# BACKUP_COUNT = %s' % BACKUP_COUNT)
 print('# BACKUP_DIR = %s' % BACKUP_DIR)
 if BACKUP_TYPE not in [B_HOURLY]:
     print('# BACKUP_PRIOR_TYPE = %s' % BACKUP_PRIOR_TYPE)
-    print('# BACKUP_PRIOR_COUNT = %s' % BACKUP_PRIOR_COUNT)
 print('# BACKUP_PRE_EXIT_SLEEP_M = %s' % BACKUP_PRE_EXIT_SLEEP_M)
 if DATABASE:
     print('# DATABASE = %s' % DATABASE)
@@ -709,12 +687,13 @@ else:
     #####
     # 5 #
     #####
-    # Daily, weekly or monthly backup...
+    # It's a Daily, weekly or monthly backup.
+    # Search for and copy the oldest prior backup file.
     FILE_SEARCH = os.path.join(BACKUP_PRIOR_DIR, BACKUP_FILE_PREFIX + '*')
     EXISTING_PRIOR_BACKUPS = glob.glob(FILE_SEARCH)
     NUM_PRIOR_BACKUPS = len(EXISTING_PRIOR_BACKUPS)
-    if NUM_PRIOR_BACKUPS == BACKUP_PRIOR_COUNT:
-        # Prior backup has sufficient files.
+    if NUM_PRIOR_BACKUPS > 0:
+        # There are some prior backups.
         # Copy the oldest
         EXISTING_PRIOR_BACKUPS.sort()
         OLDEST_PRIOR = EXISTING_PRIOR_BACKUPS[0]
@@ -727,7 +706,7 @@ else:
             print('--] %s' % expn)
             error(ERROR_REMOVE_OLDEST)
     else:
-        print('--] Nothing to do. Too few prior backups (%s)' % NUM_PRIOR_BACKUPS)
+        print('--] Nothing to do. No prior backups')
 
 #####
 # 6 #
