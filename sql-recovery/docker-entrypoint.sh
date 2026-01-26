@@ -60,13 +60,13 @@ if [ -v BACKUP_VOLUME_IS_S3 ]; then
     S3FS_EXTRA_OPTIONS+=" -o ${BACKUP_VOLUME_S3_REQUEST_STYLE}"
   fi
 
-  # Create the target directory ('/backup')
+  # Create the target directory ('/recovery')
   # and then invoke s3fs
   mkdir -p /backup
   S3FS_CMD_OPTIONS="-o passwd_file=/tmp/.passwd-s3fs ${S3FS_EXTRA_OPTIONS}"
   echo "--] s3fs AWS_BUCKET_NAME=${AWS_BUCKET_NAME}"
   echo "--] s3fs S3FS_CMD_OPTIONS=${S3FS_CMD_OPTIONS}"
-  s3fs ${AWS_BUCKET_NAME} /backup ${S3FS_CMD_OPTIONS}
+  s3fs ${AWS_BUCKET_NAME} /recovery ${S3FS_CMD_OPTIONS}
 
   # And then wait (to avoid weird /backup root directories not existing)
   echo "--] Sleeping for 4 seconds..."
