@@ -83,6 +83,30 @@ Variables for PostgreSQL recovery...
     If you set this to any value the recovery will not stop if there
     are errors. The default is to stop the recovery if there are errors.
 
+Variables for (AWS) S3 backup (synchronisation).
+If the AWS_BUCKET_NAME is set the code assumes that the bucket is mapped
+to the expected backup mount point (RECOVERY_ROOT_DIR) by the
+'docker-entrypoint.sh' script, which is achieved using 's3fs'.
+
+If you are using S3 you must not mount a backup directory at '/recovery'
+as the underlying 'docker-entrypoint.sh' script will do this for you and
+any existing backup directory may cause an error or at the very least confusion.
+
+-   AWS_BUCKET_NAME
+
+    If set, it's the name of an AWS S3 bucket (default '').
+    If set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set.
+
+-   AWS_ACCESS_KEY_ID
+
+    The access key ID for write-access to the named bucket.
+    This must be set if AWS_BUCKET_NAME is set.
+
+-   AWS_SECRET_ACCESS_KEY
+
+    The secret access key.
+    This must be set if AWS_BUCKET_NAME is set.
+
 Variables for rclone bucket support.
 If the USE_RCLONE variable is set the code assumes that the user
 wants to synchronise the recovery directory with a remote bucket using rclone
@@ -126,6 +150,7 @@ ERROR_NO_LATEST = 5
 ERROR_MISSING_RCLONE_BUCKET_AND_PATH = 6
 ERROR_MISSING_RCLONE_VARIABLE = 7
 ERROR_RCLONE_FAILED = 8
+ERROR_INCOMPLETE_AWS = 9
 
 # Supported database flavours...
 FLAVOUR_POSTGRESQL = 'postgresql'
@@ -155,6 +180,7 @@ PGUSER = os.environ.get('PGUSER', 'postgres')
 PGADMINPASS = os.environ.get('PGADMINPASS', '-')
 HOME = os.environ['HOME']
 # AWS/rclone S3 material...
+AWS_BUCKET_NAME = os.environ.get('AWS_BUCKET_NAME', '')
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
 AWS_DEFAULT_REGION = os.environ.get('AWS_DEFAULT_REGION', '')
@@ -267,6 +293,22 @@ def error(error_no):
     write_termination_message(error_no)
     sys.exit(0)
 
+
+if AWS_BUCKET_NAME:
+    print('# AWS_BUCKET_NAME = %s' % AWS_BUCKET_NAME)
+
+# If AWS_BUCKET_NAME is defined
+# we must have all or nothing with regard to AWS info
+AWS_VAR_COUNT = 0
+if AWS_BUCKET_NAME:
+    AWS_VAR_COUNT += 1
+if AWS_ACCESS_KEY_ID:
+    AWS_VAR_COUNT += 1
+if AWS_SECRET_ACCESS_KEY:
+    AWS_VAR_COUNT += 1
+if AWS_BUCKET_NAME and AWS_VAR_COUNT != 3:
+    print('--] If specifying AWS_BUCKET_NAME you must define all the AWS variables')
+    error(ERROR_INCOMPLETE_AWS)
 
 RECOVERY_START_TIME = datetime.now()
 print('--] Hello [%s]' % RECOVERY_START_TIME)
@@ -438,7 +480,8 @@ if LATEST_BACKUP_MAXIMUM_AGE_H and LATEST_BACKUP:
 elif LATEST_BACKUP_MAXIMUM_AGE_H and not LATEST_BACKUP:
     # Given maximum age but there appear to be no backups!
     print('--] There is no "latest" backup!')
-    print('--] I was told to expect an age of no more than %s hours.')
+    print('--] I was told to expect an age of no more than %s hours.'
+          % LATEST_BACKUP_MAXIMUM_AGE_H)
     print('--] You need to check that backups are running.')
     error(ERROR_NO_LATEST)
 
