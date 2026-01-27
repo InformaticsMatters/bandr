@@ -548,7 +548,7 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
 # Filter - Remove actions on the root (postgres) user, which will otherwise
 #          cause the recovery to fail with "current user cannot be dropped".
 #          We only need to do this if the recovery is from a dumpall.
-if DATABASE:
+if not DATABASE:
     TARGET_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME)
     FILTER_PG_CMD = "egrep -v '^(CREATE|DROP) ROLE %s;' %s > filtered.sql ; mv filtered.sql %s" % (RECOVERY_DATABASE_ROOT_USER, TARGET_FILE, TARGET_FILE)
     print("    $", FILTER_PG_CMD)
