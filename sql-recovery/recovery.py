@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 """A simple module to recover a backup created with pg_dumpall (or pg_dump)
-(as performed by our sql-backup container).
+(as performed by our sql-backup container). Importantly,
+any pg_dumpall backup is expected to have been created with
+"--clean" and "-if-exists" options.
 
 The backup directory (BACKUP_ROOT_DIR) is expected to have
 been mounted as a volume in the container image.
@@ -550,7 +552,7 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
 #          We only need to do this if the recovery is from a dumpall.
 if not DATABASE:
     TARGET_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME)
-    FILTER_PG_CMD = "egrep -v '^(CREATE|DROP) ROLE %s;' %s > filtered.sql ; mv filtered.sql %s" % (RECOVERY_DATABASE_ROOT_USER, TARGET_FILE, TARGET_FILE)
+    FILTER_PG_CMD = "egrep -v '^(CREATE|DROP) ROLE IF EXISTS %s;' %s > filtered.sql ; mv filtered.sql %s" % (RECOVERY_DATABASE_ROOT_USER, TARGET_FILE, TARGET_FILE)
     print("    $", FILTER_PG_CMD)
     COMPLETED_PROCESS = subprocess.run(FILTER_PG_CMD,
                                        shell=True,
