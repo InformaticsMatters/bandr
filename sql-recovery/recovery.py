@@ -631,12 +631,16 @@ if DATABASE_EXPECTED_COUNT:
 # Remove any files we may have created.
 RECOVERY_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME)
 FILTERED_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_FILTERED_NAME)
+OUTPUT_FILE = "%s/sql.out" % RECOVERY_ROOT_DIR
 if os.path.isfile(RECOVERY_FILE):
     print('--] Removing %s' % RECOVERY_FILE)
     os.remove(RECOVERY_FILE)
 if os.path.isfile(FILTERED_FILE):
     print('--] Removing %s' % FILTERED_FILE)
     os.remove(FILTERED_FILE)
+if os.path.isfile(OUTPUT_FILE):
+    print('--] Removing %s' % OUTPUT_FILE)
+    os.remove(OUTPUT_FILE)
 
 # Success if we get here
 write_termination_message()

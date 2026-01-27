@@ -389,13 +389,16 @@ BACKUP = os.path.join(BACKUP_DIR, BACKUP_LIVE_FILE)
 # Backup commands (for all databases) for the various database flavours...
 BACKUP_COMMANDS = {
     FLAVOUR_POSTGRESQL: 'pg_dumpall --username=%s --no-password --clean --if-exists'
+                        ' --no-comments'
+                        ' --exclude-database=template1'
+                        ' --exclude-database=postgres'
                         ' | gzip > %s' % (PGUSER, BACKUP)
 }
 # Backup commands (for a single database).
 # Check comments above in case they're relevant here.
 BACKUP_COMMANDS_ONE_DB = {
-    FLAVOUR_POSTGRESQL: 'pg_dump --username=%s --no-password --clean --if-exists %s'
-                        ' | gzip > %s' % (PGUSER, DATABASE, BACKUP)
+    FLAVOUR_POSTGRESQL: 'pg_dump --username=%s --no-password --clean --if-exists'
+                        ' --no-comments %s | gzip > %s' % (PGUSER, DATABASE, BACKUP)
 }
 
 # What 'flavour' of database do we expect to be backing up?
