@@ -205,6 +205,7 @@ DO_NOT_STOP_ON_ERROR = os.environ.get('DO_NOT_STOP_ON_ERROR', '')
 # The recovery root dir, where backups are unpacked.
 RECOVERY_ROOT_DIR = '/recovery'
 DECOMPRESSED_RECOVERY_NAME = 'recovery'
+DECOMPRESSED_FILTERED_NAME = 'filtered'
 BACKUP_FILE_PREFIX = 'backup'
 
 # Recovery commands for the various database flavours...
@@ -551,8 +552,9 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
 #          cause the recovery to fail with "current user cannot be dropped".
 #          We only need to do this if the recovery is from a dumpall.
 if not DATABASE:
-    TARGET_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME)
-    FILTER_PG_CMD = "egrep -v '^(CREATE|DROP) ROLE IF EXISTS %s;' %s > filtered.sql ; mv filtered.sql %s" % (RECOVERY_DATABASE_ROOT_USER, TARGET_FILE, TARGET_FILE)
+    RECOVERY_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME)
+    FILTERED_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_FILTERED_NAME)
+    FILTER_PG_CMD = "egrep -v '^(CREATE ROLE|DROP ROLE IF EXISTS) %s;' %s > %s ; mv %s %s" % (RECOVERY_DATABASE_ROOT_USER, RECOVERY_FILE, FILTERED_FILE, FILTERED_FILE, RECOVERY_FILE)
     print("    $", FILTER_PG_CMD)
     COMPLETED_PROCESS = subprocess.run(FILTER_PG_CMD,
                                        shell=True,
@@ -625,6 +627,16 @@ if DATABASE_EXPECTED_COUNT:
     else:
         print('--] OK - Found the expected number of databases (%s).'
               % DATABASE_EXPECTED_COUNT)
+
+# Remove any files we may have created.
+RECOVERY_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME)
+FILTERED_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_FILTERED_NAME)
+if os.path.isfile(RECOVERY_FILE):
+    print('--] Removing %s' % RECOVERY_FILE)
+    os.remove(RECOVERY_FILE)
+if os.path.isfile(FILTERED_FILE):
+    print('--] Removing %s' % FILTERED_FILE)
+    os.remove(FILTERED_FILE)
 
 # Success if we get here
 write_termination_message()
