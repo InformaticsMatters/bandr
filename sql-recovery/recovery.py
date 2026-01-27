@@ -173,6 +173,7 @@ LATEST_BACKUP_MAXIMUM_AGE_H_STR = os.environ.get('LATEST_BACKUP_MAXIMUM_AGE_H', 
 DATABASE_EXPECTED_COUNT = os.environ.get('DATABASE_EXPECTED_COUNT', '')
 # A specific database?
 DATABASE = os.environ.get('DATABASE', '')
+RECOVERY_DATABASE_ROOT_USER = os.environ.get('RECOVERY_DATABASE_ROOT_USER', 'postgres')
 # Extract configuration from the environment.
 # Postgres material...
 PGHOST = os.environ.get('PGHOST', '')
@@ -543,6 +544,18 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     print('--] Leaving')
     write_termination_message('Unpack failed')
     sys.exit(0)
+
+# Filter - Remove actions on the root (postgres) user, which will otherwise
+#          cause the recovery to fail with "current user cannot be dropped".
+#          We only need to do this if the recovery is from a dumpall.
+if DATABASE:
+    TARGET_FILE = "%s/%s.sql" % (RECOVERY_ROOT_DIR, DECOMPRESSED_RECOVERY_NAME)
+    FILTER_PG_CMD = "egrep -v '^(CREATE|DROP) ROLE %s;' %s > filtered.sql ; mv filtered.sql %s" % (RECOVERY_DATABASE_ROOT_USER, TARGET_FILE, TARGET_FILE)
+    print("    $", FILTER_PG_CMD)
+    COMPLETED_PROCESS = subprocess.run(FILTER_PG_CMD,
+                                       shell=True,
+                                       stderr=subprocess.PIPE,
+                                       check=False)
 
 print("    $", RECOVERY_CMD)
 COMPLETED_PROCESS = subprocess.run(RECOVERY_CMD,
