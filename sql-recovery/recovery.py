@@ -202,6 +202,8 @@ USE_RCLONE_BUCKET_AND_PATH = os.environ.get('USE_RCLONE_BUCKET_AND_PATH', '')
 # Do not stop on error?
 DO_NOT_STOP_ON_ERROR = os.environ.get('DO_NOT_STOP_ON_ERROR', '')
 
+# The backup root (where backups can be found)
+BACKUP_ROOT_DIR = '/backup'
 # The recovery root dir, where backups are unpacked.
 RECOVERY_ROOT_DIR = '/recovery'
 DECOMPRESSED_RECOVERY_NAME = 'recovery'
@@ -397,6 +399,9 @@ if DATABASE_FLAVOUR in [FLAVOUR_POSTGRESQL] and HAVE_ADMIN_PASS:
 if not os.path.isdir(RECOVERY_ROOT_DIR):
     print('--] Recovery root directory does not exist (%s). Leaving.' % RECOVERY_ROOT_DIR)
     error(ERROR_NO_ROOT)
+if not os.path.isdir(BACKUP_ROOT_DIR):
+    print('--] Backup root directory does not exist (%s). Leaving.' % BACKUP_ROOT_DIR)
+    error(ERROR_NO_ROOT)
 
 #####
 # 1 #
@@ -405,7 +410,7 @@ if USE_RCLONE:
     RCLONE_START_TIME = datetime.now()
     print('--] Running rclone [%s]' % RCLONE_START_TIME)
 
-    RCLONE_CMD = 'rclone sync remote:%s %s' % (USE_RCLONE_BUCKET_AND_PATH, RECOVERY_ROOT_DIR)
+    RCLONE_CMD = 'rclone sync remote:%s %s' % (USE_RCLONE_BUCKET_AND_PATH, BACKUP_ROOT_DIR)
     print("    $", RCLONE_CMD)
 
     COMPLETED_PROCESS = subprocess.run(RCLONE_CMD, shell=True,
@@ -430,7 +435,7 @@ if USE_RCLONE:
 # A dictionary of backup files and their directories.
 LATEST_BACKUP = None
 KNOWN_BACKUPS = {}
-FILE_SEARCH = os.path.join(RECOVERY_ROOT_DIR, '**', BACKUP_FILE_PREFIX + '*')
+FILE_SEARCH = os.path.join(BACKUP_ROOT_DIR, '**', BACKUP_FILE_PREFIX + '*')
 BACKUPS = glob.glob(FILE_SEARCH)
 for BACKUP in BACKUPS:
     FILENAME = os.path.basename(BACKUP)
@@ -542,8 +547,6 @@ if COMPLETED_PROCESS.returncode != 0 or COMPLETED_PROCESS.stderr:
     if COMPLETED_PROCESS.stderr:
         print('--] stderr follows...')
         print(COMPLETED_PROCESS.stderr.decode("utf-8").strip())
-    # Remove the current backup
-    os.remove(BACKUP)
     print('--] Leaving')
     write_termination_message('Unpack failed')
     sys.exit(0)
